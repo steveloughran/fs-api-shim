@@ -55,7 +55,7 @@ public class ShimConstants {
               FS_OPTION_OPENFILE_READ_POLICY_SEQUENTIAL)
           .collect(Collectors.toSet()));
 
-  public static final String INPUT_FADVISE =
+  public static final String S3A_INPUT_FADVISE =
       "fs.s3a.experimental.input.fadvise";
   /**
    * Prefix for all standard filesystem options: {@value}.

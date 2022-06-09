@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,11 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
     this(instance, false);
   }
 
+  /**
+   * Costructor, primarily for testing.
+   * @param instance instance to bind to.
+   * @param raiseExceptionsOnOpenFileFailures raise exceptions rather than downgrade on openFile builder failures.
+   */
   public FileSystemShim(
       final FileSystem instance,
       final boolean raiseExceptionsOnOpenFileFailures) {
@@ -70,10 +76,57 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
     this.raiseExceptionsOnOpenFileFailures = raiseExceptionsOnOpenFileFailures;
   }
 
+  private void setLongOpt(Object builder, Method opt, String key, long len)
+      throws InvocationTargetException, IllegalAccessException {
+    if (len >= 0) {
+      opt.invoke(builder, key, Long.toString(len));
+    }
+  }
+
+  /**
+   * Open a file.
+   * On hadoop 3.3.0+ the {@code openFile()} builder API is used,
+   * which on some filesystems (initially s3a) lets the caller set
+   * seek policy and split start/end hints.
+   * If a filestatus is passed in (or sometimes just length) then
+   * stores may skip HEAD checks for file existence.
+   * S3A does this since Hadoop 3.3.0;
+   * Abfs supports this on all branches with HADOOP-17682.
+   *
+   * In HADOOP-16202 standard keys were defined, with an ordered
+   * and extensible list of read policies permitted in the
+   *  "fs.option.openfile.read.policy" key.
+   * The s3a key "fs.s3a.experimental.input.fadvise"
+   * only takes the original set of values
+   * "sequential", "random", "adaptive"; if the seek param
+   * is not one of those it is not set.
+   *
+   * If the builder can't be invoked for some reason,
+   * or fails to open (permissions, file not found...)
+   * then the method falls back to the class openFile()
+   * call.
+   *
+   * Note that the if status/length is passed in and the file
+   * is missing, unreadable etc, the error may not surface
+   * until the first read() call.
+   *
+   * See https://github.com/apache/hadoop/blob/trunk/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/fsdatainputstream.md
+   * @param path path
+   * @param seekPolicy seek policy, one of
+   * @param status nullable file status
+   * @param len length; -1 if not known
+   * @param splitStart start of split ; -1 if not known
+   * @param splitEnd end of split ; -1 if not known
+   * @return an open stream.
+   * @throws IOException failure to open
+   */
   public FSDataInputStream openFile(Path path,
       String seekPolicy,
-      FileStatus status,
-      long len) throws IOException {
+      @Nullable FileStatus status,
+      long len,
+      long splitStart,
+      long splitEnd) throws IOException {
+
     FileSystem fs = getInstance();
     requireNonNull(path, "Null path parameter");
     if (openFileMethod != null) {
@@ -81,11 +134,17 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
         Object builder = openFileMethod.invoke(path);
         Class<?> builderClass = builder.getClass();
         Method opt = builderClass.getMethod("opt", String.class, String.class);
-        opt.invoke(builder, ShimConstants.FS_OPTION_OPENFILE_LENGTH, Long.toString(len));
-        opt.invoke(builder, ShimConstants.FS_OPTION_OPENFILE_READ_POLICY, seekPolicy);
-        if (ShimConstants.S3A_READ_POLICIES.contains(seekPolicy)) {
-          // use the subset of seek policies which s3a always knows of.
-          opt.invoke(builder, ShimConstants.INPUT_FADVISE, seekPolicy);
+
+        setLongOpt(builder, opt, ShimConstants.FS_OPTION_OPENFILE_LENGTH, len);
+        setLongOpt(builder, opt, ShimConstants.FS_OPTION_OPENFILE_SPLIT_START, splitStart);
+        setLongOpt(builder, opt, ShimConstants.FS_OPTION_OPENFILE_SPLIT_END, splitEnd);
+
+        if (seekPolicy != null && !seekPolicy.isEmpty()) {
+          if (ShimConstants.S3A_READ_POLICIES.contains(seekPolicy)) {
+            // use the subset of seek policies which s3a always knows of.
+            opt.invoke(builder, ShimConstants.S3A_INPUT_FADVISE, seekPolicy);
+          }
+          opt.invoke(builder, ShimConstants.FS_OPTION_OPENFILE_READ_POLICY, seekPolicy);
         }
         if (status != null) {
           // filestatus

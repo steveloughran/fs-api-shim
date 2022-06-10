@@ -33,15 +33,19 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.shim.impl.Invocation;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.hadoop.fs.shim.impl.ShimUtils.convertToIOException;
+import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
+import static org.apache.hadoop.fs.shim.impl.ShimUtils.getMethod;
 
 public class FileSystemShim extends AbstractAPIShim<FileSystem> {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemShim.class);
 
   private final Method openFileMethod;
-  private final Method hasPathCapabilityMethod;
-  private final Method msyncMethod;
+  private final Invocation hasPathCapabilityMethod;
+  private final Invocation msyncMethod;
 
   private final AtomicInteger openFileFailures = new AtomicInteger();
 
@@ -69,10 +73,12 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
       final FileSystem instance,
       final boolean raiseExceptionsOnOpenFileFailures) {
     super(FileSystem.class, instance);
-    openFileMethod = getMethod(getClazz(), "openFile", Path.class);
-    hasPathCapabilityMethod = getMethod(getClazz(), "hasPathCapability",
+    Class<FileSystem> clazz = getClazz();
+    openFileMethod = getMethod(clazz, "openFile", Path.class);
+    hasPathCapabilityMethod = getInvocation(clazz, "hasPathCapability",
         Path.class, String.class);
-    msyncMethod = getMethod(getClazz(), "msync");
+
+    msyncMethod = getInvocation(clazz, "msync");
     this.raiseExceptionsOnOpenFileFailures = raiseExceptionsOnOpenFileFailures;
   }
 
@@ -194,6 +200,7 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
     if (raiseExceptionsOnOpenFileFailures) {
       throw convertToIOException(ex);
     }
+
   }
 
   public boolean implementsOpenFile() {
@@ -209,11 +216,11 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
   }
 
   public boolean implementsHasPathCapability() {
-    return hasPathCapabilityMethod != null;
+    return hasPathCapabilityMethod.available();
   }
 
   public boolean implementsMsync() {
-    return msyncMethod != null;
+    return msyncMethod.available();
   }
 
   /**
@@ -232,10 +239,7 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
     }
     try {
       return (Boolean) hasPathCapabilityMethod.invoke(getInstance(), path, capability);
-    } catch (InvocationTargetException e) {
-      throw convertToIOException(e);
-    } catch (IllegalAccessException | ClassCastException
-             | IllegalArgumentException e) {
+    } catch (ClassCastException | IllegalArgumentException e) {
       LOG.debug("Failure of hasPathCapability({}, {})", path, capability, e);
       return false;
     }
@@ -250,13 +254,10 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
    * @throws UnsupportedOperationException if the operation is unsupported.
    */
   public void msync() throws IOException, UnsupportedOperationException {
+    msyncMethod.invoke(getInstance());
     if (implementsMsync()) {
       try {
-        msyncMethod.invoke(getInstance());
-      } catch (InvocationTargetException e) {
-
-        throw convertToIOException(e);
-      } catch (IllegalAccessException | IllegalArgumentException e) {
+      } catch (IllegalArgumentException e) {
         LOG.debug("Failure of msync()", e);
       }
     }

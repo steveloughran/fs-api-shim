@@ -18,35 +18,8 @@
 
 package org.apache.hadoop.fs.shim;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static java.util.Objects.requireNonNull;
-
-public abstract class AbstractAPIShim<T> {
-  private static final Logger LOG = LoggerFactory.getLogger(AbstractAPIShim.class);
-
-  /**
-   * Class being shimmed.
-   */
-  private final Class<T> clazz;
-
-  /**
-   * Instance being shimmed.
-   */
-  private final T instance;
-
-  public AbstractAPIShim(final Class<T> clazz, final T instance) {
-    this.clazz = requireNonNull(clazz);
-    this.instance = requireNonNull(instance);
-  }
-
-  public Class<T> getClazz() {
-    return clazz;
-  }
-
-  public T getInstance() {
-    return instance;
-  }
-
+/**
+ * Configuration options for the shim classes.
+ */
+public class ShimOptions {
 }

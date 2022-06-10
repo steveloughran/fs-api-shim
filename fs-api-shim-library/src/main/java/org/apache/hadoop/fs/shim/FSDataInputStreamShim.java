@@ -20,34 +20,44 @@ package org.apache.hadoop.fs.shim;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.StreamCapabilities;
+import org.apache.hadoop.fs.shim.impl.Invocation;
+
+import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
+import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
 
 /**
  * Shim methods for FSDataInputStream.
  */
 public class FSDataInputStreamShim extends AbstractAPIShim<FSDataInputStream> {
   private static final Logger LOG = LoggerFactory.getLogger(FSDataInputStreamShim.class);
-  private final Method byteBufferPositionedRead;
-  private final Method byteBufferPositionedReadFully;
+  private final Invocation byteBufferPositionedRead;
+  private final Invocation byteBufferPositionedReadFully;
 
   public FSDataInputStreamShim(
       final FSDataInputStream instance) {
     super(FSDataInputStream.class, instance);
-    byteBufferPositionedRead = getMethod(getClazz(), "read", Long.class, ByteBuffer.class);
-    byteBufferPositionedReadFully = getMethod(getClazz(), "readFully", Long.class,
-        ByteBuffer.class);
+    byteBufferPositionedRead = getInvocation(getClazz(), "read", Long.class, ByteBuffer.class);
+
+    byteBufferPositionedReadFully =
+        byteBufferPositionedRead.available()
+            ? getInvocation(getClazz(),
+            "readFully", Long.class, ByteBuffer.class)
+            : unavailable("readFully");
   }
 
-  public boolean implementsByteBufferPositionedReadable() {
-    return byteBufferPositionedRead != null;
+  /**
+   * Is {@code ByteBufferPositionedRead}  API available to invoke
+   * If not, calling the methods will raise UnsupportedOperationException
+   * @return true if the methods were found.
+   */
+  public final boolean implementsByteBufferPositionedRead() {
+    return byteBufferPositionedRead.available();
   }
 
   /**
@@ -65,10 +75,10 @@ public class FSDataInputStreamShim extends AbstractAPIShim<FSDataInputStream> {
    * undefined, and callers should be prepared to recover from this
    * eventuality.
    * <p>
-   * Callers should use {@link StreamCapabilities#hasCapability(String)} with
-   * {@link StreamCapabilities#PREADBYTEBUFFER} to check if the underlying
+   * Callers should use {@code hasCapability(String)} with
+   * {@code PREADBYTEBUFFER} to check if the underlying
    * stream supports this interface, otherwise they might get a
-   * {@link UnsupportedOperationException}.
+   * {@code UnsupportedOperationException}.
    * <p>
    * Implementations should treat 0-length requests as legitimate, and must not
    * signal an error upon their receipt.
@@ -83,17 +93,7 @@ public class FSDataInputStreamShim extends AbstractAPIShim<FSDataInputStream> {
    * @throws UnsupportedOperationException operation isn't available
    */
   public int read(long position, ByteBuffer buf) throws IOException {
-    if (byteBufferPositionedRead == null) {
-      throw new UnsupportedOperationException("No ByteBufferPositionedReadable in "
-          + getInstance());
-    }
-    try {
-      return (int) byteBufferPositionedRead.invoke(getInstance(), position, buf);
-    } catch (InvocationTargetException e) {
-      throw convertToIOException(e);
-    } catch (IllegalAccessException | IllegalArgumentException e) {
-      throw new IOException(e);
-    }
+    return (int) byteBufferPositionedRead.invoke(getInstance(), position, buf);
   }
 
   /**
@@ -117,17 +117,7 @@ public class FSDataInputStreamShim extends AbstractAPIShim<FSDataInputStream> {
    * @see #read(long, ByteBuffer)
    */
   public void readFully(long position, ByteBuffer buf) throws IOException {
-    if (byteBufferPositionedReadFully == null) {
-      throw new UnsupportedOperationException("No ByteBufferPositionedReadable in "
-          + getInstance());
-    }
-    try {
-      byteBufferPositionedReadFully.invoke(getInstance(), position, buf);
-    } catch (InvocationTargetException e) {
-      throw convertToIOException(e);
-    } catch (IllegalAccessException | IllegalArgumentException e) {
-      throw new UnsupportedOperationException(e);
-    }
+    byteBufferPositionedReadFully.invoke(getInstance(), position, buf);
   }
 
 }

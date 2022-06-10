@@ -16,37 +16,32 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim;
+package org.apache.hadoop.fs.shim.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import javax.annotation.Nullable;
 
-import static java.util.Objects.requireNonNull;
+public final class Invocation {
 
-public abstract class AbstractAPIShim<T> {
-  private static final Logger LOG = LoggerFactory.getLogger(AbstractAPIShim.class);
+  private final String name;
+  private final Method method;
 
-  /**
-   * Class being shimmed.
-   */
-  private final Class<T> clazz;
-
-  /**
-   * Instance being shimmed.
-   */
-  private final T instance;
-
-  public AbstractAPIShim(final Class<T> clazz, final T instance) {
-    this.clazz = requireNonNull(clazz);
-    this.instance = requireNonNull(instance);
+  public Invocation(final String name, final @Nullable Method method) {
+    this.name = name;
+    this.method = method;
   }
 
-  public Class<T> getClazz() {
-    return clazz;
+  public boolean available() {
+    return method != null;
   }
 
-  public T getInstance() {
-    return instance;
+ public Object invoke(Object instance,
+      Object... parameters) throws IOException {
+    return ShimUtils.invokeOperation(name, instance, method, parameters);
   }
 
+  public static Invocation unavailable(String name) {
+    return new Invocation(name, null);
+  }
 }

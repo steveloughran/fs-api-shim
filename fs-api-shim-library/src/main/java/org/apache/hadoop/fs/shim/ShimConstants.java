@@ -27,26 +27,39 @@ import java.util.stream.Stream;
  * Constants from recent hadoop releases.
  */
 public class ShimConstants {
+
   /**
    * Read policy for adaptive IO: {@value}.
    */
   public static final String FS_OPTION_OPENFILE_READ_POLICY_ADAPTIVE =
       "adaptive";
+
   /**
    * Read policy {@value} -whateve the implementation does by default.
    */
   public static final String FS_OPTION_OPENFILE_READ_POLICY_DEFAULT =
       "default";
+
   /**
    * Read policy for random IO: {@value}.
    */
   public static final String FS_OPTION_OPENFILE_READ_POLICY_RANDOM =
       "random";
+
   /**
    * Read policy for sequential IO: {@value}.
    */
   public static final String FS_OPTION_OPENFILE_READ_POLICY_SEQUENTIAL =
       "sequential";
+
+  /**
+   * Read policies supported by the s3a connector in hadoop 3.2+
+   * The public open file option adds more and the ability to
+   * provide an ordered list of preferred policies.
+   * As s3a connectors without that feature can't handle
+   * a list, this set is used to identify which options can be
+   * safely passed down.
+   */
   static final Set<String> S3A_READ_POLICIES =
       Collections.unmodifiableSet(Stream.of(
               FS_OPTION_OPENFILE_READ_POLICY_ADAPTIVE,
@@ -61,31 +74,37 @@ public class ShimConstants {
    * Prefix for all standard filesystem options: {@value}.
    */
   private static final String FILESYSTEM_OPTION = "fs.option.";
+
   /**
    * Prefix for all openFile options: {@value}.
    */
   public static final String FS_OPTION_OPENFILE =
       FILESYSTEM_OPTION + "openfile.";
+
   /**
    * OpenFile option for read policies: {@value}.
    */
   public static final String FS_OPTION_OPENFILE_READ_POLICY =
       FS_OPTION_OPENFILE + "read.policy";
+
   /**
    * OpenFile option for buffer size: {@value}.
    */
   public static final String FS_OPTION_OPENFILE_BUFFER_SIZE =
       FS_OPTION_OPENFILE + "buffer.size";
+
   /**
    * OpenFile option for split end: {@value}.
    */
   public static final String FS_OPTION_OPENFILE_SPLIT_END =
       FS_OPTION_OPENFILE + "split.end";
+
   /**
    * OpenFile option for split start: {@value}.
    */
   public static final String FS_OPTION_OPENFILE_SPLIT_START =
       FS_OPTION_OPENFILE + "split.start";
+
   /**
    * OpenFile option for file length: {@value}.
    */

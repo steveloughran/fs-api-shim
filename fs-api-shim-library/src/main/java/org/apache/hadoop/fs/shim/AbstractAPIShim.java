@@ -23,6 +23,12 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Base class for any API shim.
+ * Subclasses provide the class-specific operations; one of them must then
+ * be created for every instance of the class to work with.
+ * @param <T> class being shimmed to.
+ */
 public abstract class AbstractAPIShim<T> {
   private static final Logger LOG = LoggerFactory.getLogger(AbstractAPIShim.class);
 
@@ -36,15 +42,28 @@ public abstract class AbstractAPIShim<T> {
    */
   private final T instance;
 
+  /**
+   * Constructor.
+   * @param clazz Class being shimmed.
+   * @param instance Instance being shimmed.
+   */
   public AbstractAPIShim(final Class<T> clazz, final T instance) {
     this.clazz = requireNonNull(clazz);
     this.instance = requireNonNull(instance);
   }
 
+  /**
+   * Get the class.
+   * @return class being shimmed.
+   */
   public Class<T> getClazz() {
     return clazz;
   }
 
+  /**
+   * Get the instance.
+   * @return instance being shimmed.
+   */
   public T getInstance() {
     return instance;
   }

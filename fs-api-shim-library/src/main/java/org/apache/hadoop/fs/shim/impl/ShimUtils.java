@@ -31,15 +31,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.fs.shim.AbstractAPIShim;
 
 /**
  * Shim utilities.
  */
 @InterfaceAudience.Private
 public final class ShimUtils {
-  private static final Logger LOG = LoggerFactory.getLogger(AbstractAPIShim.class);
 
+  private static final Logger LOG = LoggerFactory.getLogger(ShimUtils.class);
+
+  /**
+   * convert any wrapped exception to an IOE.
+   * If there is no cause, convert the supplied exception instead.
+   * @param e exception
+   * @return an IOException to throw.
+   */
   public static IOException unwrapAndconvertToIOException(Exception e) {
     Throwable cause = e.getCause();
     return convertUnwrappedException(cause != null ? cause : e);
@@ -57,7 +63,8 @@ public final class ShimUtils {
    * @throws Error if that is the type
    */
   public static IOException convertToIOException(Exception e) {
-    if (e instanceof InvocationTargetException || e instanceof ExecutionException) {
+    if (e instanceof InvocationTargetException
+        || e instanceof ExecutionException) {
       return unwrapAndconvertToIOException(e);
     } else {
       return convertUnwrappedException(e);
@@ -68,25 +75,25 @@ public final class ShimUtils {
    * Convert to an IOE and return for throwing.
    * If the cause is actually a RuntimeException
    * other than UncheckedIOException
-   * or Error, it is thrown
-   * @param cause exception
-   * @throws RuntimeException if that is the type
-   * @throws Error if that is the type
+   * or Error, it is thrown.
+   * @param thrown exception
+   * @throws RuntimeException if that is the type of {@code thrown}.
+   * @throws Error if that is the type  of {@code thrown}.
    */
-  public static IOException convertUnwrappedException(final Throwable cause) {
-    if (cause instanceof UncheckedIOException) {
-      return ((UncheckedIOException) cause).getCause();
+  public static IOException convertUnwrappedException(final Throwable thrown) {
+    if (thrown instanceof UncheckedIOException) {
+      return ((UncheckedIOException) thrown).getCause();
     }
-    if (cause instanceof RuntimeException) {
-      throw (RuntimeException) cause;
+    if (thrown instanceof RuntimeException) {
+      throw (RuntimeException) thrown;
     }
-    if (cause instanceof Error) {
-      throw (Error) cause;
+    if (thrown instanceof Error) {
+      throw (Error) thrown;
     }
-    if (cause instanceof IOException) {
-      return (IOException) cause;
+    if (thrown instanceof IOException) {
+      return (IOException) thrown;
     }
-    return new IOException(cause);
+    return new IOException(thrown);
   }
 
   /**
@@ -136,14 +143,16 @@ public final class ShimUtils {
   }
 
   /**
-   * Invoke a method. if the method is null, raise
-   * UnsupportedOperationException
+   * Invoke a method with exception unwrap/uprate.
+   * If the method is null, raise UnsupportedOperationException
    * @param operation operation name for errors
    * @param instance instance to invoke
    * @param method method, may be null
    * @param parameters parameters
    * @return the result
-   * @throws IOException
+   * @throws UnsupportedOperationException if the method is null
+   * @throws RuntimeException for all RTEs raised by invoked methods except UncheckedIOEs
+   * @throws IOException when converting/unwrappping thrown exceptions
    */
   public static Object invokeOperation(String operation,
       Object instance,
@@ -155,7 +164,9 @@ public final class ShimUtils {
     }
     try {
       return method.invoke(instance, parameters);
-    } catch (IllegalAccessException | InvocationTargetException | IllegalArgumentException  ex) {
+    } catch (IllegalAccessException
+             | InvocationTargetException
+             | IllegalArgumentException  ex) {
       throw convertToIOException(ex);
     }
   }

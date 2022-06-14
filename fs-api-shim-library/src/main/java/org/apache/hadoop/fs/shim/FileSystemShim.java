@@ -40,6 +40,9 @@ import static org.apache.hadoop.fs.shim.impl.ShimUtils.convertToIOException;
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.getMethod;
 
+/**
+ * Shim for the Hadoop {@code FileSystem} class.
+ */
 public class FileSystemShim extends AbstractAPIShim<FileSystem> {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemShim.class);
 
@@ -126,7 +129,8 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
    * @return an open stream.
    * @throws IOException failure to open
    */
-  public FSDataInputStream openFile(Path path,
+  public FSDataInputStream openFile(
+      Path path,
       String seekPolicy,
       @Nullable FileStatus status,
       long len,
@@ -203,7 +207,7 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
 
   }
 
-  public boolean implementsOpenFile() {
+  public boolean openFileFound() {
     return openFileMethod != null;
   }
 
@@ -215,12 +219,8 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
     return openFileFailures.get();
   }
 
-  public boolean implementsHasPathCapability() {
+  public boolean pathCapabilitiesFound() {
     return hasPathCapabilityMethod.available();
-  }
-
-  public boolean implementsMsync() {
-    return msyncMethod.available();
   }
 
   /**
@@ -234,7 +234,7 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
    */
   public boolean hasPathCapability(final Path path, final String capability)
       throws IOException {
-    if (!implementsHasPathCapability()) {
+    if (!pathCapabilitiesFound()) {
       return false;
     }
     try {
@@ -245,18 +245,24 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
     }
   }
 
+
+  public boolean msyncFound() {
+    return msyncMethod.available();
+  }
+
   /**
    * Synchronize client metadata state.
    * <p>
    * In many versions of hadoop, but not cloudera CDH7.
+   * A no-op if not implementedc.
    *
    * @throws IOException If an I/O error occurred.
    * @throws UnsupportedOperationException if the operation is unsupported.
    */
   public void msync() throws IOException, UnsupportedOperationException {
-    msyncMethod.invoke(getInstance());
-    if (implementsMsync()) {
+    if (msyncFound()) {
       try {
+        msyncMethod.invoke(getInstance());
       } catch (IllegalArgumentException e) {
         LOG.debug("Failure of msync()", e);
       }

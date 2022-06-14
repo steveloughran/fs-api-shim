@@ -23,13 +23,14 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>fs-api-shim-library</artifactId>
+  <artifactId>fs-api-shim-test</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>fs-api-shim-library</name>
+  <name>fs-api-shim-test</name>
   <description>
-    A simple fs-api-shim-library.
+    Module to tests the fs-api-shim library against a later version
+    of hadoop.
   </description>
 
 
@@ -41,6 +42,7 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
+      <version>${hadoop.test.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -48,7 +50,6 @@
       <artifactId>hadoop-common</artifactId>
       <scope>provided</scope>
     </dependency>
-
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -67,7 +68,6 @@
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
-
   </dependencies>
 
   <build>

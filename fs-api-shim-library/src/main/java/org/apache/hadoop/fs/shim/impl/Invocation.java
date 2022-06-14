@@ -22,10 +22,20 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import javax.annotation.Nullable;
 
+/**
+ * A method which can be invoked.
+ */
 public final class Invocation {
 
+  /**
+   * Method name for error messages.
+   */
   private final String name;
-  private final Method method;
+
+  /**
+   * Method to invoke.
+   */
+  private final @Nullable Method method;
 
   public Invocation(final String name, final @Nullable Method method) {
     this.name = name;
@@ -36,11 +46,25 @@ public final class Invocation {
     return method != null;
   }
 
- public Object invoke(Object instance,
-      Object... parameters) throws IOException {
+  /**
+   * Invoke the method with exception unwrap/uprate.
+   * If {@link #method} is null, raise UnsupportedOperationException
+   * @param instance instance to invoke
+   * @param parameters parameters
+   * @return the result
+   * @throws IOException when converting/unwrappping thrown exceptions other than RTEs.
+   */
+ public Object invoke(
+     final Object instance,
+     final Object... parameters) throws IOException {
     return ShimUtils.invokeOperation(name, instance, method, parameters);
   }
 
+  /**
+   * Generate an invocation which is always unavailable.
+   * @param name name for the exception text.
+   * @return an invocation which always raises
+   */
   public static Invocation unavailable(String name) {
     return new Invocation(name, null);
   }

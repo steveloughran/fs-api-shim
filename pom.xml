@@ -37,6 +37,9 @@
     <file.encoding>UTF-8</file.encoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <maven-surefire-plugin.argLine>-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError</maven-surefire-plugin.argLine>
+    <maven-surefire-plugin.version>3.0.0-M1</maven-surefire-plugin.version>
+    <maven-surefire-report-plugin.version>${maven-surefire-plugin.version}</maven-surefire-report-plugin.version>
 
     <javac.version>1.8</javac.version>
     <enforced.java.version>${javac.version}</enforced.java.version>
@@ -59,6 +62,8 @@
 
   <dependencyManagement>
     <dependencies>
+
+       <!--  Used for compilatioph -->
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-client</artifactId>
@@ -125,13 +130,29 @@
           <version>3.0.2</version>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.8.0</version>
+          <configuration>
+            <source>${javac.version}</source>
+            <target>${javac.version}</target>
+            <useIncrementalCompilation>true</useIncrementalCompilation>
+          </configuration>
         </plugin>
-        <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.1</version>
-        </plugin>
+
+
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <version>${maven-surefire-plugin.version}</version>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-failsafe-plugin</artifactId>
+              <version>${maven-failsafe-plugin.version}</version>
+            </plugin>
+
+
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.0.2</version>

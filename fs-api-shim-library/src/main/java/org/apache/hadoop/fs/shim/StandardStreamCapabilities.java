@@ -18,20 +18,11 @@
 
 package org.apache.hadoop.fs.shim;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.fs.ByteBufferReadable;
-import org.apache.hadoop.fs.CanSetDropBehind;
-import org.apache.hadoop.fs.CanSetReadahead;
-import org.apache.hadoop.fs.CanUnbuffer;
-import org.apache.hadoop.fs.Syncable;
-
 /**
  *
  *  The Standard StreamCapabilities.
  */
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
+
 public interface StandardStreamCapabilities {
   /**
    * Stream hflush capability implemented by {@code Syncable#hflush()}.
@@ -81,5 +72,64 @@ public interface StandardStreamCapabilities {
    */
   String IOSTATISTICS = "iostatistics";
 
+  
+  /**
+   * Flag to indicate whether a stream is a magic output stream;
+   * returned in {@code StreamCapabilities}
+   * Value: {@value}.
+   */
+  static final String S3A_STREAM_CAPABILITY_MAGIC_OUTPUT
+      = "fs.s3a.capability.magic.output.stream";
+
+  /**
+   * Flag to indicate that a store supports magic committers.
+   * returned in {@code PathCapabilities}
+   * Value: {@value}.
+   */
+  static final String S3A_CAPABILITY_MAGIC_COMMITTER
+      = "fs.s3a.capability.magic.committer";
+
+  /**
+   * {@code PathCapabilities} probe to indicate that the filesystem
+   * keeps directory markers.
+   * Value: {@value}.
+   */
+  public static final String S3A_CAPABILITY_DIRECTORY_MARKER_POLICY_KEEP
+      = "fs.s3a.capability.directory.marker.policy.keep";
+
+  /**
+   * {@code PathCapabilities} probe to indicate that the filesystem
+   * deletes directory markers.
+   * Value: {@value}.
+   */
+  public static final String S3A_CAPABILITY_DIRECTORY_MARKER_POLICY_DELETE
+      = "fs.s3a.capability.directory.marker.policy.delete";
+
+  /**
+   * {@code PathCapabilities} probe to indicate that the filesystem
+   * keeps directory markers in authoritative paths only.
+   * Value: {@value}.
+   */
+  public static final String
+      S3A_CAPABILITY_DIRECTORY_MARKER_POLICY_AUTHORITATIVE =
+      "fs.s3a.capability.directory.marker.policy.authoritative";
+
+  /**
+   * {@code PathCapabilities} probe to indicate that a path
+   * keeps directory markers.
+   * Value: {@value}.
+   */
+  public static final String S3A_CAPABILITY_DIRECTORY_MARKER_ACTION_KEEP
+      = "fs.s3a.capability.directory.marker.action.keep";
+
+  /**
+   * {@code PathCapabilities} probe to indicate that a path
+   * deletes directory markers.
+   * Value: {@value}.
+   */
+  public static final String S3A_CAPABILITY_DIRECTORY_MARKER_ACTION_DELETE
+      = "fs.s3a.capability.directory.marker.action.delete";
+
+  
 }
 

@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 /**
  * Constants from recent hadoop releases.
  */
-public class ShimConstants {
+public class OpenFileConstants {
 
   /**
    * Read policy for adaptive IO: {@value}.
@@ -70,6 +70,10 @@ public class ShimConstants {
 
   public static final String S3A_INPUT_FADVISE =
       "fs.s3a.experimental.input.fadvise";
+
+
+  public static final String S3A_READAHEAD_RANGE = "fs.s3a.readahead.range";
+
   /**
    * Prefix for all standard filesystem options: {@value}.
    */
@@ -110,4 +114,12 @@ public class ShimConstants {
    */
   public static final String FS_OPTION_OPENFILE_LENGTH =
       FS_OPTION_OPENFILE + "length";
+
+
+  /**
+   * openFile option to enable a lock free pread which will bypass buffer in AbfsInputStream.
+   * {@value}.
+   */
+  public static final String ABFS_BUFFERED_PREAD_DISABLE = "fs.azure.buffered.pread.disable";
+
 }

@@ -16,10 +16,22 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim;
+package org.apache.hadoop.fs.shim.test.binding;
 
-/**
- * Configuration options for the shim classes.
- */
-public class ShimOptions {
+public class Hadoop330Features extends Hadoop320Features {
+
+  /**
+   * Query for a feature being supported.
+   * @param feature feature to query
+   * @return true if the feature is supported
+   */
+  public boolean hasCapability(String feature) {
+    switch (feature) {
+    case FeatureKeys.PATH_CAPABILITIES:
+    case FeatureKeys.OPENFILE:
+      return true;
+    default:
+      return super.hasCapability(feature);
+    }
+  }
 }

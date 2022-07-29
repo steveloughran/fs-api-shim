@@ -19,12 +19,41 @@
 package org.apache.hadoop.fs.shim.test;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 import org.apache.hadoop.fs.contract.AbstractFSContractTestBase;
+import org.apache.hadoop.fs.shim.test.binding.FileContract;
+import org.apache.hadoop.fs.shim.test.binding.Hadoop320Features;
 
-public class AbstractShimContractTest extends AbstractFSContractTestBase {
+/**
+ * Abstract FS contract test.
+ * This implementation always returns the local FS as the contract, though
+ * it can be overridden.
+ */
+public class AbstractShimContractTest extends AbstractFSContractTestBase
+    implements StreamCapabilities {
+
+  private StreamCapabilities versionCapabilities;
+
+  public AbstractShimContractTest() {
+    versionCapabilities = new Hadoop320Features();
+  }
+
+  public StreamCapabilities getVersionCapabilities() {
+    return versionCapabilities;
+  }
+
+  public void setVersionCapabilities(final StreamCapabilities versionCapabilities) {
+    this.versionCapabilities = versionCapabilities;
+  }
+
   @Override
   protected AbstractFSContract createContract(final Configuration conf) {
-    return null;
+    return new FileContract(conf);
+  }
+
+  @Override
+  public boolean hasCapability(final String capability) {
+    return versionCapabilities.hasCapability(capability);
   }
 }

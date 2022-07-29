@@ -16,29 +16,31 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim.test;
+package org.apache.hadoop.fs.shim.test.binding;
 
-public class ShimContractOptions {
+public class FeatureKeys {
 
   /**
    * Is the PathCapabilities API available?
    * Value: {@value}.
    */
-  String PATH_CAPABILITIES_AVAILABLE = "path.capabilities.available";
+  public static final String PATH_CAPABILITIES = "path.capabilities";
 
   /**
    * Is the msync call available?
    * Value: {@value}.
    */
-  String MSYNC_AVAILABLE = "msync.available";
+  public static final String MSYNC = "msync";
+  public static final String OPENFILE = "openfile";
+
+  public static final String IOSTATISTICS = "iostatistics";
 
   /**
    * Is the ByteBufferPositionedRead API available?
    * Value: {@value}.
    */
-  String BYTEBUFFER_POSITIONED_READ_AVAILABLE =
-      "bytebuffer.positionedread.available";
-
+  String BYTEBUFFER_POSITIONED_READ =
+      "bytebuffer.positionedread";
 
   /**
    * Is the ByteBufferPositionedRead API actually
@@ -53,7 +55,5 @@ public class ShimContractOptions {
    * Is the vector IO API available?
    * Value: {@value}.
    */
-  String VECTOR_IO_AVAILABLE =
-      "vector.io.available";
-
+  String VECTOR_IO_ = "vector.io";
 }

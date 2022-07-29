@@ -37,11 +37,20 @@ public final class Invocation {
    */
   private final @Nullable Method method;
 
+  /**
+   * Create.
+   * @param name invocation name for error messages.
+   * @param method method to invoke.
+   */
   public Invocation(final String name, final @Nullable Method method) {
     this.name = name;
     this.method = method;
   }
 
+  /**
+   * Is the method available.
+   * @return true if the invocation is available.
+   */
   public boolean available() {
     return method != null;
   }

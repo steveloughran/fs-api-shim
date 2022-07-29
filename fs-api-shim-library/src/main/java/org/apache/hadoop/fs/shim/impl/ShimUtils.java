@@ -24,18 +24,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-
 /**
  * Shim utilities.
  */
-@InterfaceAudience.Private
 public final class ShimUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(ShimUtils.class);
@@ -48,7 +44,7 @@ public final class ShimUtils {
    */
   public static IOException unwrapAndconvertToIOException(Exception e) {
     Throwable cause = e.getCause();
-    return convertUnwrappedException(cause != null ? cause : e);
+    return convertUnwrappedExceptionToIOE(cause != null ? cause : e);
   }
 
   /**
@@ -67,7 +63,7 @@ public final class ShimUtils {
         || e instanceof ExecutionException) {
       return unwrapAndconvertToIOException(e);
     } else {
-      return convertUnwrappedException(e);
+      return convertUnwrappedExceptionToIOE(e);
     }
   }
 
@@ -80,7 +76,7 @@ public final class ShimUtils {
    * @throws RuntimeException if that is the type of {@code thrown}.
    * @throws Error if that is the type  of {@code thrown}.
    */
-  public static IOException convertUnwrappedException(final Throwable thrown) {
+  public static IOException convertUnwrappedExceptionToIOE(final Throwable thrown) {
     if (thrown instanceof UncheckedIOException) {
       return ((UncheckedIOException) thrown).getCause();
     }
@@ -154,7 +150,8 @@ public final class ShimUtils {
    * @throws RuntimeException for all RTEs raised by invoked methods except UncheckedIOEs
    * @throws IOException when converting/unwrappping thrown exceptions
    */
-  public static Object invokeOperation(String operation,
+  public static Object invokeOperation(
+      String operation,
       Object instance,
       @Nullable Method method,
       Object... parameters) throws IOException {

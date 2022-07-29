@@ -74,7 +74,10 @@ In these tables, "hadoop.next" means "the next feature release of hadoop", as op
 | Vectored IO                | hadoop.next | [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103) | `UnsupportedOperationException` |
 |                            |             |                                                                    |                                 |
 
-### [HDFS-3246](https://issues.apache.org/jira/browse/HADOOP-18103)`ByteBufferPositionedRead` interface
+### [HADOOP-15229](https://issues.apache.org/jira/browse/HADOOP-15229) Add FileSystem builder-based openFile() API to match createFile() (since 3.3.0)
+
+
+### [HDFS-3246](https://issues.apache.org/jira/browse/HDFS-3246]) `ByteBufferPositionedRead` interface (since 3.3.0)
 
 The `ByteBufferPositionedRead` interface allows an application to read/readFully into
 a byte buffer from a specific offset.
@@ -90,7 +93,7 @@ on the stream.
 All streams which implement `ByteBufferPositionedRead` MUST return `true` on this probe
 a requirement which is upheld by all those implemented in the hadoop libraries themselves
 
-### [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103). Vector IO
+### [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103). Vector IO. 3.3.5?
 
 The Vector IO API of HADOOP-18103 offers a high performance scatter/gather API for accessing columnar data.
 By giving the filesystem clients more information about the plan of future reads, they can optimize

@@ -18,7 +18,6 @@
 package org.apache.hadoop.fs.shim.test;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,7 +38,6 @@ import org.apache.hadoop.io.IOUtils;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.compareByteArrays;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.createFile;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.dataset;
-import static org.apache.hadoop.fs.contract.ContractTestUtils.touch;
 import static org.apache.hadoop.fs.shim.OpenFileConstants.FS_OPTION_OPENFILE_BUFFER_SIZE;
 import static org.apache.hadoop.fs.shim.OpenFileConstants.FS_OPTION_OPENFILE_LENGTH;
 import static org.apache.hadoop.fs.shim.OpenFileConstants.FS_OPTION_OPENFILE_READ_POLICY;
@@ -50,13 +48,13 @@ import static org.apache.hadoop.test.LambdaTestUtils.intercept;
 /**
  * Test Open operations.
  */
-public abstract class OpenFileShimTest
+public class TestOpenFileShim
     extends AbstractShimContractTest {
 
   private FSDataInputStream instream;
   private FileSystemShim fsShim;
 
-  public OpenFileShimTest() {
+  public TestOpenFileShim() {
   }
 
   @Override

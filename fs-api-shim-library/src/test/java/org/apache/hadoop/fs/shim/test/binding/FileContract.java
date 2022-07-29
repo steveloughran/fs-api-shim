@@ -35,6 +35,6 @@ public class FileContract extends LocalFSContract {
 
   @Override
   protected String getContractXml() {
-    return "&5localfs.xml";
+    return "org/apache/hadoop/fs/shim/test/localfs.xml";
   }
 }

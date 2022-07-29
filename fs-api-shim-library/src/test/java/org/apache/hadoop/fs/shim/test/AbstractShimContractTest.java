@@ -18,12 +18,16 @@
 
 package org.apache.hadoop.fs.shim.test;
 
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 import org.apache.hadoop.fs.contract.AbstractFSContractTestBase;
 import org.apache.hadoop.fs.shim.test.binding.FileContract;
-import org.apache.hadoop.fs.shim.test.binding.Hadoop320Features;
+import org.apache.hadoop.util.VersionInfo;
 
 /**
  * Abstract FS contract test.
@@ -32,11 +36,17 @@ import org.apache.hadoop.fs.shim.test.binding.Hadoop320Features;
  */
 public class AbstractShimContractTest extends AbstractFSContractTestBase
     implements StreamCapabilities {
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractShimContractTest.class);
 
   private StreamCapabilities versionCapabilities;
 
   public AbstractShimContractTest() {
-    versionCapabilities = new Hadoop320Features();
+    // versionCapabilities = new Hadoop320Features();
+  }
+
+  @BeforeClass
+  public static void logHadoopVersion() {
+    LOG.info("Hadoop version {}", VersionInfo.getBuildVersion());
   }
 
   public StreamCapabilities getVersionCapabilities() {

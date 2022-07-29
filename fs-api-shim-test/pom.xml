@@ -39,16 +39,28 @@
   </properties>
 
   <dependencies>
+
     <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-client</artifactId>
-      <version>${hadoop.test.version}</version>
-      <scope>provided</scope>
+      <groupId>org.apache.hadoop.extensions</groupId>
+      <artifactId>fs-api-shim-library</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.hadoop.extensions</groupId>
+      <artifactId>fs-api-shim-library</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-common</artifactId>
-      <scope>provided</scope>
+      <version>${hadoop.test.version}</version>
+
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -68,11 +80,24 @@
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
+
+
   </dependencies>
 
   <build>
+     <plugins>
+       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
+        <configuration>
 
-  </build>
-
-
+          <trimStackTrace>false</trimStackTrace>
+            <dependenciesToScan>
+              <dependency>org.apache.hadoop.extensions:fs-api-shim-library:test-jar</dependency>
+            </dependenciesToScan>
+        </configuration>
+      </plugin>
+     </plugins>
+   </build>
 </project>

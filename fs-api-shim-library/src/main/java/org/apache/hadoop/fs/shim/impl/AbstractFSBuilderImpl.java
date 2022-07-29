@@ -93,8 +93,6 @@ AbstractFSBuilderImpl<S, B extends FSBuilder<S, B>>
    */
   protected AbstractFSBuilderImpl(
       @Nonnull Optional<Path> optionalPath) {
-    checkArgument(!(checkNotNull(optionalPath).isPresent()),
-        E_BOTH_A_PATH_AND_A_PATH_HANDLE);
     this.optionalPath = optionalPath;
   }
 

@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.shim.impl.Invocation;
 import org.apache.hadoop.fs.shim.impl.OpenFileBuilder;
 import org.apache.hadoop.fs.shim.impl.OpenFileBuilder.ExecuteOpenFile;
 
+import static org.apache.hadoop.fs.shim.functional.FutureIO.eval;
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.convertToIOException;
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.getMethod;
@@ -201,13 +202,17 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
 
   /**
    * Build through the classic API.
-   * All IOEs are raised immediately.
+   * The opening is asynchronous.
    */
   private class OpenFileThroughClassicAPI implements ExecuteOpenFile {
     @Override
     public CompletableFuture<FSDataInputStream> executeOpenFile(final OpenFileBuilder builder)
         throws IllegalArgumentException, UnsupportedOperationException, IOException {
-      return CompletableFuture.completedFuture(getInstance().open(builder.getPath()));
+      if (!builder.getMandatoryKeys().isEmpty()) {
+        throw new IllegalArgumentException("Mandatory keys not supported");
+      }
+      return eval(() ->
+          getInstance().open(builder.getPath()));
     }
   }
 
@@ -225,13 +230,19 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
       Path path = source.getPath();
 
       try {
-        Object builder = openFileMethod.invoke(path);
+        Object builder = openFileMethod.invoke(fs, path);
         Class<?> builderClass = builder.getClass();
         Method opt = builderClass.getMethod("opt", String.class, String.class);
         Configuration options = source.getOptions();
         for (Map.Entry<String, String> option : options) {
           opt.invoke(builder, option.getKey(), option.getValue());
         }
+        Method must = builderClass.getMethod("must", String.class, String.class);
+        for (String k : source.getMandatoryKeys()) {
+          must.invoke(builder, k, options.get(k));
+        }
+
+
         if (status != null) {
           // filestatus
           Method withFileStatus =
@@ -239,6 +250,7 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
           withFileStatus.invoke(builder, status);
         }
         Method build = builderClass.getMethod("build");
+        build.setAccessible(true);
         Object result = build.invoke(builder);
         // cast and return. may raise ClassCastException which will
         // be thrown.

@@ -21,6 +21,7 @@ package org.apache.hadoop.fs.shim.functional;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -172,6 +173,8 @@ public final class FutureIO {
     } else if (cause instanceof CompletionException) {
       return unwrapInnerException(cause);
     } else if (cause instanceof ExecutionException) {
+      return unwrapInnerException(cause);
+    } else if (cause instanceof InvocationTargetException) {
       return unwrapInnerException(cause);
     } else if (cause instanceof RuntimeException) {
       throw (RuntimeException) cause;

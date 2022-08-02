@@ -20,39 +20,28 @@ package org.apache.hadoop.fs.shim.impl;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import javax.annotation.Nonnull;
 
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 
 /**
- * Builder for the openFile operation; takes a callback
- * to the actual build operation.
+ * The file opening operation called by
+ * {@link OpenFileBuilder}.
  */
-public class OpenFileBuilder extends FutureDataInputStreamBuilderImpl
-      implements FutureDataInputStreamBuilder {
+public interface ExecuteOpenFile {
 
   /**
-   * Callback to open the file.
+   * Using the builder as the source of info, open the specified file.
+   * IOEs should normally be deferred to the future, for consistency
+   * across old and new APIs.
+   * @param builder builder to read.
+   *
+   * @return Future of the opened file
+   *
+   * @throws IllegalArgumentException if there are unsuppported options.
+   * @throws UnsupportedOperationException API isn't found/binding
+   * @throws IOException if handling unwrapping.
    */
-  private final ExecuteOpenFile executeOpenFile;
-
-  /**
-   * Constructor.
-   * @param executeOpenFile callback to open the file.
-   * @param path path to the file.
-   */
-  public OpenFileBuilder(final ExecuteOpenFile executeOpenFile,
-      @Nonnull final Path path) {
-    super(path);
-    this.executeOpenFile = executeOpenFile;
-  }
-
-  @Override
-  public CompletableFuture<FSDataInputStream> build()
-      throws IllegalArgumentException, UnsupportedOperationException, IOException {
-    return executeOpenFile.executeOpenFile(this);
-  }
+  CompletableFuture<FSDataInputStream> executeOpenFile(OpenFileBuilder builder)
+      throws IllegalArgumentException, UnsupportedOperationException, IOException;
 
 }

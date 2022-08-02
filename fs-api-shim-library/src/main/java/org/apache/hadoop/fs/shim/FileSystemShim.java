@@ -21,48 +21,48 @@ package org.apache.hadoop.fs.shim;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
+import org.apache.hadoop.fs.shim.impl.ExecuteOpenFile;
 import org.apache.hadoop.fs.shim.impl.Invocation;
 import org.apache.hadoop.fs.shim.impl.OpenFileBuilder;
-import org.apache.hadoop.fs.shim.impl.OpenFileBuilder.ExecuteOpenFile;
+import org.apache.hadoop.fs.shim.impl.OpenFileThroughBuilderAPI;
+import org.apache.hadoop.fs.shim.impl.OpenFileThroughClassicAPI;
 
-import static org.apache.hadoop.fs.shim.functional.FutureIO.eval;
-import static org.apache.hadoop.fs.shim.impl.ShimUtils.convertToIOException;
+import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED;
+import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED;
+import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT;
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
-import static org.apache.hadoop.fs.shim.impl.ShimUtils.getMethod;
 
 /**
  * Shim for the Hadoop {@code FileSystem} class.
+ * Some of this is fairly complex, especially when fallback methods are provided...
+ * separate shims are used to help here.
  */
 public class FileSystemShim extends AbstractAPIShim<FileSystem> {
   private static final Logger LOG = LoggerFactory.getLogger(FileSystemShim.class);
 
-  private final Method openFileMethod;
   private final Invocation hasPathCapabilityMethod;
   private final Invocation msyncMethod;
 
-  private final AtomicInteger openFileFailures = new AtomicInteger();
   private final ExecuteOpenFile classicOpenFile;
-  private final ExecuteOpenFile openFileToInvoke;
 
   /**
-   * Last exception swallowed in openFile();
+   * Builder API; may be null
    */
-  private volatile Exception lastOpenFileException;
+  private final OpenFileThroughBuilderAPI openFileThroughBuilder;
 
-  private final boolean raiseExceptionsOnOpenFileFailures;
+  private final AtomicBoolean useOpenFileAPI = new AtomicBoolean(false);
+  private final OpenFileThroughAvailableOperation executeOpenFile;
 
   /**
    * Constructor
@@ -83,25 +83,42 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
       final FileSystem instance,
       final boolean raiseExceptionsOnOpenFileFailures) {
     super(FileSystem.class, instance);
-    this.raiseExceptionsOnOpenFileFailures = raiseExceptionsOnOpenFileFailures;
 
     // this is always present and used as the fallback
-    this.classicOpenFile = new OpenFileThroughClassicAPI();
+    classicOpenFile = new OpenFileThroughClassicAPI(getInstance());
 
-    Class<FileSystem> clazz = getClazz();
-    openFileMethod = getMethod(clazz, "openFile", Path.class);
-    if (openFileMethod != null) {
-      // the method is present, so bind to it.
-      openFileToInvoke = new OpenFileThroughBuilder();
+    // use the builder if present, and configured.
+    OpenFileThroughBuilderAPI builderAPI = null;
+    Configuration conf = instance.getConf();
+    if (conf.getBoolean(FS_OPTION_SHIM_OPENFILE_ENABLED, true)) {
+
+      boolean withFileStatus = conf.getBoolean(FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED,
+          FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT);
+      builderAPI = new OpenFileThroughBuilderAPI(getInstance(),
+          withFileStatus);
+      if (builderAPI.openFileFound()) {
+        //the method is present, so bind to it.
+        openFileThroughBuilder = builderAPI;
+        useOpenFileAPI.set(true);
+      } else {
+        LOG.debug("Builder API enabled but not found");
+        openFileThroughBuilder = null;
+      }
     } else {
-      openFileToInvoke = classicOpenFile;
+      // builder not enabled
+      LOG.debug("Builder API not enabled");
+      openFileThroughBuilder = null;
     }
+
+    // the simpler methods.
+    Class<FileSystem> clazz = getClazz();
 
     hasPathCapabilityMethod = getInvocation(clazz, "hasPathCapability",
         Path.class, String.class);
 
     msyncMethod = getInvocation(clazz, "msync");
 
+    executeOpenFile = new OpenFileThroughAvailableOperation();
   }
 
   private void setLongOpt(Object builder, Method opt, String key, long len)
@@ -113,30 +130,41 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
 
   public FutureDataInputStreamBuilder openFile(Path path)
       throws IOException, UnsupportedOperationException {
-    return new OpenFileBuilder(openFileToInvoke, path);
+    return new OpenFileBuilder(executeOpenFile, path);
   }
 
   /**
-   * Record an exception during openFile.
-   * Increments the coutner and sets the
-   * {@link #lastOpenFileException} to the value
-   *
-   * @param ex caught exception.
+   * Static class to handle the openFile operation.
+   * Why not just make the shim claas implement the method?
+   * Exposes too much of the implementation.
    */
-  protected void openFileException(Path path, Exception ex) throws IOException {
-    LOG.info("Failed to use openFile({})", path, ex);
-    openFileFailures.incrementAndGet();
-    if (ex != null) {
-      lastOpenFileException = ex;
-    }
-    if (raiseExceptionsOnOpenFileFailures) {
-      throw convertToIOException(ex);
-    }
+  private final class OpenFileThroughAvailableOperation implements ExecuteOpenFile {
+    @Override
+    public CompletableFuture<FSDataInputStream> executeOpenFile(final OpenFileBuilder builder)
+        throws IllegalArgumentException, UnsupportedOperationException, IOException {
 
+      if (openFileFound()) {
+        try {
+          // use the builder API; return the result
+          return openFileThroughBuilder.executeOpenFile(builder);
+        } catch (ClassCastException | UnsupportedOperationException e) {
+          LOG.warn(
+              "Failed to open file using openFileThroughBuilder, falling back to classicOpenFile",
+              e);
+          // disable the API for this shim instance and fall back to classicOpenFile.
+          useOpenFileAPI.set(false);
+        }
+      }
+      return classicOpenFile.executeOpenFile(builder);
+    }
   }
 
+  /**
+   * Is the openFile method available?
+   * @return true if the FS implements the method.
+   */
   public boolean openFileFound() {
-    return openFileMethod != null;
+    return useOpenFileAPI.get();
   }
 
   /**
@@ -145,7 +173,7 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
    * @return counter
    */
   public int getOpenFileFailures() {
-    return openFileFailures.get();
+    return openFileThroughBuilder.getOpenFileFailures();
   }
 
   public boolean pathCapabilitiesFound() {
@@ -177,6 +205,11 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
     }
   }
 
+  /**
+   * Is msync available?
+   *
+   * @return true if the mmsync method is available.
+   */
   public boolean msyncFound() {
     return msyncMethod.available();
   }
@@ -185,94 +218,18 @@ public class FileSystemShim extends AbstractAPIShim<FileSystem> {
    * Synchronize client metadata state.
    * <p>
    * In many versions of hadoop, but not cloudera CDH7.
-   * A no-op if not implementedc.
+   * A no-op if not implemented.
    *
    * @throws IOException If an I/O error occurred.
-   * @throws UnsupportedOperationException if the operation is unsupported.
    */
-  public void msync() throws IOException, UnsupportedOperationException {
+  public void msync() throws IOException {
     if (msyncFound()) {
       try {
         msyncMethod.invoke(getInstance());
-      } catch (IllegalArgumentException e) {
+      } catch (IllegalArgumentException | UnsupportedOperationException e) {
         LOG.debug("Failure of msync()", e);
       }
     }
-  }
-
-  /**
-   * Build through the classic API.
-   * The opening is asynchronous.
-   */
-  private class OpenFileThroughClassicAPI implements ExecuteOpenFile {
-    @Override
-    public CompletableFuture<FSDataInputStream> executeOpenFile(final OpenFileBuilder builder)
-        throws IllegalArgumentException, UnsupportedOperationException, IOException {
-      if (!builder.getMandatoryKeys().isEmpty()) {
-        throw new IllegalArgumentException("Mandatory keys not supported");
-      }
-      return eval(() ->
-          getInstance().open(builder.getPath()));
-    }
-  }
-
-  /**
-   * Open a file through the builder API.
-   */
-  private final class OpenFileThroughBuilder implements ExecuteOpenFile {
-
-    @Override
-    public CompletableFuture<FSDataInputStream> executeOpenFile(final OpenFileBuilder source)
-        throws IOException {
-
-      FileStatus status = source.getStatus();
-      FileSystem fs = getInstance();
-      Path path = source.getPath();
-
-      try {
-        Object builder = openFileMethod.invoke(fs, path);
-        Class<?> builderClass = builder.getClass();
-        Method opt = builderClass.getMethod("opt", String.class, String.class);
-        Configuration options = source.getOptions();
-        for (Map.Entry<String, String> option : options) {
-          opt.invoke(builder, option.getKey(), option.getValue());
-        }
-        Method must = builderClass.getMethod("must", String.class, String.class);
-        for (String k : source.getMandatoryKeys()) {
-          must.invoke(builder, k, options.get(k));
-        }
-
-
-        if (status != null) {
-          // filestatus
-          Method withFileStatus =
-              builderClass.getMethod("withFileStatus", FileStatus.class);
-          withFileStatus.invoke(builder, status);
-        }
-        Method build = builderClass.getMethod("build");
-        build.setAccessible(true);
-        Object result = build.invoke(builder);
-        // cast and return. may raise ClassCastException which will
-        // be thrown.
-        CompletableFuture<FSDataInputStream> future = (CompletableFuture<FSDataInputStream>) result;
-        return future;
-
-      } catch (IllegalArgumentException e) {
-        // RTE we are happy to downgrade
-        openFileException(path, e);
-      } catch (ClassCastException e) {
-        // this a bug in the code, rethrow
-        openFileException(path, e);
-        throw e;
-      } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-        // downgrade on all failures, even classic IOEs...let the fallback handle them.
-        openFileException(path, e);
-      }
-
-      // the new API failed, fall back.
-      return classicOpenFile.executeOpenFile(source);
-    }
-
   }
 
 }

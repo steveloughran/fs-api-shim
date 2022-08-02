@@ -77,7 +77,7 @@ public class OpenFileConstants {
   /**
    * Prefix for all standard filesystem options: {@value}.
    */
-  private static final String FILESYSTEM_OPTION = "fs.option.";
+  public static final String FILESYSTEM_OPTION = "fs.option.";
 
   /**
    * Prefix for all openFile options: {@value}.

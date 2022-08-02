@@ -20,39 +20,31 @@ package org.apache.hadoop.fs.shim.impl;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import javax.annotation.Nonnull;
 
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
+import org.apache.hadoop.fs.FileSystem;
+
+import static org.apache.hadoop.fs.shim.functional.FutureIO.eval;
 
 /**
- * Builder for the openFile operation; takes a callback
- * to the actual build operation.
+ * Build through the classic API.
+ * The opening is asynchronous.
  */
-public class OpenFileBuilder extends FutureDataInputStreamBuilderImpl
-      implements FutureDataInputStreamBuilder {
+public class OpenFileThroughClassicAPI implements ExecuteOpenFile {
 
-  /**
-   * Callback to open the file.
-   */
-  private final ExecuteOpenFile executeOpenFile;
+  private final FileSystem fileSystem;
 
-  /**
-   * Constructor.
-   * @param executeOpenFile callback to open the file.
-   * @param path path to the file.
-   */
-  public OpenFileBuilder(final ExecuteOpenFile executeOpenFile,
-      @Nonnull final Path path) {
-    super(path);
-    this.executeOpenFile = executeOpenFile;
+  public OpenFileThroughClassicAPI(FileSystem fs) {
+    fileSystem = fs;
   }
 
   @Override
-  public CompletableFuture<FSDataInputStream> build()
+  public CompletableFuture<FSDataInputStream> executeOpenFile(final OpenFileBuilder builder)
       throws IllegalArgumentException, UnsupportedOperationException, IOException {
-    return executeOpenFile.executeOpenFile(this);
+    if (!builder.getMandatoryKeys().isEmpty()) {
+      throw new IllegalArgumentException("Mandatory keys not supported");
+    }
+    return eval(() ->
+        fileSystem.open(builder.getPath()));
   }
-
 }

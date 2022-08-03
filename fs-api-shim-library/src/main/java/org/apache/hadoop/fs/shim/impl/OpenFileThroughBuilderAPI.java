@@ -60,20 +60,20 @@ public final class OpenFileThroughBuilderAPI
   /**
    * Should the .withFileStatus() method be called?
    */
-  private final boolean enableWiithFileStatus;
+  private final boolean enableWithFileStatus;
 
   /**
    * Constructor.
    * @param instance FS instance to shim.
-   * @param enableWiithFileStatus should the .withFileStatus() method be called?
+   * @param enableWithFileStatus should the .withFileStatus() method be called?
    */
   public OpenFileThroughBuilderAPI(
       final FileSystem instance,
-      final boolean enableWiithFileStatus) {
+      final boolean enableWithFileStatus) {
     super(FileSystem.class, instance);
     openFileMethod = getMethod(instance.getClass(), "openFile", Path.class);
 
-    this.enableWiithFileStatus = enableWiithFileStatus;
+    this.enableWithFileStatus = enableWithFileStatus;
   }
 
   /**
@@ -143,7 +143,7 @@ public final class OpenFileThroughBuilderAPI
       // the status is of the wrong type.
       // hence the ability to disable it.
 
-      if (status != null && enableWiithFileStatus) {
+      if (status != null && enableWithFileStatus) {
         // filestatus
         Method withFileStatus =
             builderClass.getMethod("withFileStatus", FileStatus.class);

@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 /**
  * A method which can be invoked.
  */
-public final class Invocation {
+public final class Invocation<T> {
 
   /**
    * Method name for error messages.
@@ -63,10 +63,10 @@ public final class Invocation {
    * @return the result
    * @throws IOException when converting/unwrappping thrown exceptions other than RTEs.
    */
- public Object invoke(
+ public T invoke(
      final Object instance,
      final Object... parameters) throws IOException {
-    return ShimUtils.invokeOperation(name, instance, method, parameters);
+    return (T)ShimUtils.invokeOperation(name, instance, method, parameters);
   }
 
   /**

@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-/**
- * Subset of {@code org.apache.hadoop.util.functional}.
- */
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
-package org.apache.hadoop.fs.shim.functional;
+package org.apache.hadoop.fs.shim;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
+public interface APIShim<T> {
+  /**
+   * Get the instance.
+   *
+   * @return instance being shimmed.
+   */
+  T getInstance();
+}

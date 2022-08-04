@@ -33,7 +33,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.shim.AbstractAPIShim;
 import org.apache.hadoop.fs.shim.functional.FutureIO;
 
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.getMethod;

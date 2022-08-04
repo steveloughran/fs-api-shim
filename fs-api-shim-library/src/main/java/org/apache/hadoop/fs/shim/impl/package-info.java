@@ -17,11 +17,11 @@
  */
 
 /**
- * Subset of {@code org.apache.hadoop.util.functional}.
+ * Shim implementation classes.
+ * Not for public use.
  */
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
-package org.apache.hadoop.fs.shim.functional;
+
+@InterfaceAudience.Private
+package org.apache.hadoop.fs.shim.impl;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;

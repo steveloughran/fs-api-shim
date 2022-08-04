@@ -16,10 +16,12 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim;
+package org.apache.hadoop.fs.shim.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.apache.hadoop.fs.shim.APIShim;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,8 +31,7 @@ import static java.util.Objects.requireNonNull;
  * be created for every instance of the class to work with.
  * @param <T> class being shimmed to.
  */
-public abstract class AbstractAPIShim<T> {
-  private static final Logger LOG = LoggerFactory.getLogger(AbstractAPIShim.class);
+public abstract class AbstractAPIShim<T> implements APIShim<T> {
 
   /**
    * Class being shimmed.
@@ -60,10 +61,7 @@ public abstract class AbstractAPIShim<T> {
     return clazz;
   }
 
-  /**
-   * Get the instance.
-   * @return instance being shimmed.
-   */
+  @Override
   public T getInstance() {
     return instance;
   }

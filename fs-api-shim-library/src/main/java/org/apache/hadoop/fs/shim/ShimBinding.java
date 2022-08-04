@@ -16,12 +16,18 @@
  * limitations under the License.
  */
 
-/**
- * Subset of {@code org.apache.hadoop.util.functional}.
- */
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
-package org.apache.hadoop.fs.shim.functional;
+package org.apache.hadoop.fs.shim;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.shim.impl.FileSystemShimImpl;
+
+/**
+ * Binding class to create shim instances.
+ */
+public final class ShimBinding {
+
+  public static FileSystemShim createFileSystemShim(FileSystem fs) {
+    return new FileSystemShimImpl(fs);
+  }
+
+}

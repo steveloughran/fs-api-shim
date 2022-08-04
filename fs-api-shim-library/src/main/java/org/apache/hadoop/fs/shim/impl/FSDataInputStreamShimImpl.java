@@ -102,7 +102,7 @@ public class FSDataInputStreamShimImpl extends AbstractAPIShim<FSDataInputStream
 /*        ByteBuffer tmp = buf.duplicate();
         tmp.limit(tmp.position() + len);
         tmp = tmp.slice();*/
-        int read = in.read(position, buf.array(), buf.position(), len;
+        int read = in.read(position, buf.array(), buf.position(), len);
         buf.position(buf.position() + read);
         return read;
       }

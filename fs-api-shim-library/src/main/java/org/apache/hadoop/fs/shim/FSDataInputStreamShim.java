@@ -26,18 +26,13 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.StreamCapabilities;
 
 public interface FSDataInputStreamShim extends APIShim<FSDataInputStream> {
-  /**
-   * Is {@code ByteBufferPositionedRead} API available to invoke
-   * If not, calling the methods will raise UnsupportedOperationException
-   *
-   * @return true if the methods were found.
-   */
-  boolean byteBufferPositionedReadFound();
 
   /**
-   * Is the API functional?
-   * That is: the API is in the stream *andK the stream capabilities
-   * declares that it is available.
+   * Is ByteBufferPositionedRead in the wrapped stream functional?
+   * That is: the API is in the stream *and the stream capabilities
+   * declares that it is available*
+   * If this is not true the fallback implementation will be used.
+   *
    *
    * @return true if the ByteBufferPositionedRead methods can be used.
    */

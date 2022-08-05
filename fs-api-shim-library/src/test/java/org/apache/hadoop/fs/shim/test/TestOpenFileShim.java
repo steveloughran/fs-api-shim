@@ -68,7 +68,7 @@ public class TestOpenFileShim
   @Override
   public void setup() throws Exception {
     super.setup();
-    fsShim = ShimBinding.createFileSystemShim(getFileSystem());
+    fsShim = ShimBinding.shimFileSystem(getFileSystem());
   }
 
   @Override

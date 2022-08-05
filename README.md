@@ -50,6 +50,9 @@ bugs. It is the de-facto baseline API for all Hadoop runtimes/platforms.
 Libraries which want to use these new APIs must build with a hadoop version of 3.2.0
 *or later*. 
 
+Note: the maven build uses hadoop 2.10 for compilation, but it's a java 8 only build.
+
+
 ## Shimmed Classes and their API extensions.
 
 In these tables, "hadoop.next" means "the next feature release of hadoop", as opposed to
@@ -58,24 +61,25 @@ In these tables, "hadoop.next" means "the next feature release of hadoop", as op
 
 ## `org.apache.hadoop.fs.shim.FSDataInputStreamShim`
 
-| Method                 | Version     | JIRA                                                               | Fallback                        |
-|------------------------|-------------|--------------------------------------------------------------------|---------------------------------|
-| `openFile()`           | 3.3.0       | [HADOOP-15229](https://issues.apache.org/jira/browse/HADOOP-15229) | `open(Path)`                    |
-| `msync()`              | 3.3.2       | [HDFS-15567](https://issues.apache.org/jira/browse/HDFS-15567)     | `UnsupportedOperationException` |
-| `hasPathCapability()`  | 3.3.0       | [HADOOP-15691](https://issues.apache.org/jira/browse/HADOOP-15691) | `false`                         |
-| Enhanced `openFile() ` | hadoop.next | [HADOOP-16202](https://issues.apache.org/jira/browse/ADOOP-16202)  | ignored if set via `opt()`      |
+| Method                  | Version     | JIRA                                                               | Fallback                   |
+|-------------------------|-------------|--------------------------------------------------------------------|----------------------------|
+| `openFile()`            | 3.3.0       | [HADOOP-15229](https://issues.apache.org/jira/browse/HADOOP-15229) | `open(Path)`               |
+| `msync()`               | 3.3.2       | [HDFS-15567](https://issues.apache.org/jira/browse/HDFS-15567)     | noop                       |
+| `hasPathCapability()`   | 3.3.0       | [HADOOP-15691](https://issues.apache.org/jira/browse/HADOOP-15691) | `false`                    |
 
 
 ## `org.apache.hadoop.fs.shim.FSDataInputStreamShim`
 
 | Method                     | Version     | JIRA                                                               | Fallback                        |
 |----------------------------|-------------|--------------------------------------------------------------------|---------------------------------|
-| `ByteBufferPositionedRead` | 3.3.0       | [HDFS-3246](https://issues.apache.org/jira/browse/HDFS-3246])      | `UnsupportedOperationException` |
-| Vectored IO                | hadoop.next | [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103) | `UnsupportedOperationException` |
+| `ByteBufferPositionedRead` | 3.3.0       | [HDFS-3246](https://issues.apache.org/jira/browse/HDFS-3246])      | Emulation                       |
+| Vectored IO                | hadoop.next | [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103) | Emulation |
 |                            |             |                                                                    |                                 |
 
 ### [HADOOP-15229](https://issues.apache.org/jira/browse/HADOOP-15229) Add FileSystem builder-based openFile() API to match createFile() (since 3.3.0)
 
+This allows for the operations defined in [HADOOP-16202](https://issues.apache.org/jira/browse/ADOOP-16202) to be used if
+set in the builder in `.opt(key, value)` parameters.
 
 ### [HDFS-3246](https://issues.apache.org/jira/browse/HDFS-3246]) `ByteBufferPositionedRead` interface (since 3.3.0)
 
@@ -91,7 +95,11 @@ To verify that a stream implements the API all the way through to the filesystem
 call `hasCapability("in:preadbytebuffer")`
 on the stream.
 All streams which implement `ByteBufferPositionedRead` MUST return `true` on this probe
-a requirement which is upheld by all those implemented in the hadoop libraries themselves
+a requirement which is upheld by all those implemented in the hadoop libraries themselves.
+
+The shim library only considers the API available if the methods are found and the capability
+probe is true. If, even then, an `UnsuportedOperationException` is thrown, the fallback routine
+is used for that call and all subsequent calls.
 
 ### [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103). Vector IO. 3.3.5?
 

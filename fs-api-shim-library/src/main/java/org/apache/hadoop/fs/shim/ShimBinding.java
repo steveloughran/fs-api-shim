@@ -18,7 +18,9 @@
 
 package org.apache.hadoop.fs.shim;
 
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.shim.impl.FSDataInputStreamShimImpl;
 import org.apache.hadoop.fs.shim.impl.FileSystemShimImpl;
 
 /**
@@ -26,8 +28,13 @@ import org.apache.hadoop.fs.shim.impl.FileSystemShimImpl;
  */
 public final class ShimBinding {
 
-  public static FileSystemShim createFileSystemShim(FileSystem fs) {
+  public static FileSystemShim shimFileSystem(FileSystem fs) {
     return new FileSystemShimImpl(fs);
+  }
+
+  public static FSDataInputStreamShim shimFSDataInputStream(
+      FSDataInputStream in) {
+    return new FSDataInputStreamShimImpl(in);
   }
 
 }

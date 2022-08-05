@@ -21,6 +21,7 @@ package org.apache.hadoop.fs.shim.impl;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,10 +34,11 @@ import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
 
 /**
- * Shim methods for FSDataInputStream.
+ * invoke or emulate ByteBufferPositionedReadable.
  */
-public class FSDataInputStreamShimImpl extends AbstractAPIShim<FSDataInputStream>implements
-    FSDataInputStreamShim {
+public class FSDataInputStreamShimImpl
+    extends AbstractAPIShim<FSDataInputStream>
+    implements FSDataInputStreamShim {
 
   private static final Logger LOG = LoggerFactory.getLogger(FSDataInputStreamShimImpl.class);
 
@@ -50,6 +52,7 @@ public class FSDataInputStreamShimImpl extends AbstractAPIShim<FSDataInputStream
    * {@code ByteBufferPositionedRead.readFully()}.
    */
   private final Invocation byteBufferPositionedReadFully;
+  private final AtomicBoolean byteBufferPositionedReadFunctional;
 
   /**
    * Constructor.
@@ -66,43 +69,87 @@ public class FSDataInputStreamShimImpl extends AbstractAPIShim<FSDataInputStream
             ? getInvocation(getClazz(), "readFully",
             Long.class, ByteBuffer.class)
             : unavailable("readFully");
-  }
-
-  @Override public final boolean byteBufferPositionedReadFound() {
-    return byteBufferPositionedRead.available();
+    byteBufferPositionedReadFunctional = new AtomicBoolean(
+        byteBufferPositionedRead.available()
+            && getInstance().hasCapability(StandardStreamCapabilities.PREADBYTEBUFFER));
   }
 
   @Override public final boolean byteBufferPositionedReadFunctional() {
-    return byteBufferPositionedReadFound()
-        && getInstance().hasCapability(StandardStreamCapabilities.PREADBYTEBUFFER);
+    return byteBufferPositionedReadFunctional.get();
   }
 
   @Override public int read(long position, ByteBuffer buf) throws IOException {
+    if (byteBufferPositionedReadFunctional()) {
+      try {
+        return (int) byteBufferPositionedRead.invoke(getInstance(), position, buf);
+      } catch (UnsupportedOperationException e) {
+        LOG.debug("Failure to invoke read() on {}", getInstance(), e);
+        // note the api isn't actually available,
+        // before falling back.
+        byteBufferPositionedReadFunctional.set(false);
+      }
+    }
+    fallbackRead(position, buf);
     return (int) byteBufferPositionedRead.invoke(getInstance(), position, buf);
   }
 
   @Override public void readFully(long position, ByteBuffer buf) throws IOException {
-    byteBufferPositionedReadFully.invoke(getInstance(), position, buf);
+    if (byteBufferPositionedReadFunctional()) {
+      try {
+        byteBufferPositionedReadFully.invoke(getInstance(), position, buf);
+        return;
+      } catch (UnsupportedOperationException e) {
+        LOG.debug("Failure to invoke readFully() on {}", getInstance(), e);
+        // note the api isn't actually available,
+        // before falling back.
+        byteBufferPositionedReadFunctional.set(false);
+      }
+    }
+    fallbackReadFully(position, buf);
   }
 
   /**
    * Fallback implementation of PositionedReadable: read into a buffer
-   * .
-   * @param position
-   * @param buf
-   * @return
-   * @throws IOException
+   * Based on some of the hdfs code.
+   * {@code DFSInputStream.actualGetFromOneDataNode()}.
+   * @param position position within file
+   * @param buf the ByteBuffer to receive the results of the read operation.
+   * @throws IOException failure
    */
-  public synchronized int fallbackReadFully(long position, ByteBuffer buf) throws IOException {
+  public synchronized void fallbackReadFully(long position, ByteBuffer buf) throws IOException {
     FSDataInputStream in = getInstance();
     // position to return to.
     try (SeekBack back = new SeekBack(in)) {
       if (buf.hasArray()) {
         int len = buf.remaining();
-/*        ByteBuffer tmp = buf.duplicate();
+        ByteBuffer tmp = buf.duplicate();
         tmp.limit(tmp.position() + len);
-        tmp = tmp.slice();*/
-        int read = in.read(position, buf.array(), buf.position(), len);
+        tmp = tmp.slice();
+        in.readFully(position, tmp.array(), tmp.position(), len);
+        buf.position(buf.position() + len);
+      }
+    }
+  }
+
+  /**
+   * Fallback implementation of PositionedReadable: read into a buffer
+   * Based on some of the hdfs code.
+   * {@code DFSInputStream.actualGetFromOneDataNode()}.
+   * @param position position within file
+   * @param buf the ByteBuffer to receive the results of the read operation.
+   * @return bytes read
+   * @throws IOException failure
+   */
+  public synchronized int fallbackRead(long position, ByteBuffer buf) throws IOException {
+    FSDataInputStream in = getInstance();
+    // position to return to.
+    try (SeekBack back = new SeekBack(in)) {
+      if (buf.hasArray()) {
+        int len = buf.remaining();
+        ByteBuffer tmp = buf.duplicate();
+        tmp.limit(tmp.position() + len);
+        tmp = tmp.slice();
+        int read = in.read(position, tmp.array(), tmp.position(), len);
         buf.position(buf.position() + read);
         return read;
       }

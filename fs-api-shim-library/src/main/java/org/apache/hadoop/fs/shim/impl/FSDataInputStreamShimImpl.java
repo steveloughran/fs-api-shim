@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.hadoop.fs.ByteBufferReadable;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.shim.FSDataInputStreamShim;
 import org.apache.hadoop.fs.shim.StandardStreamCapabilities;
@@ -119,16 +120,34 @@ public class FSDataInputStreamShimImpl
   public synchronized void fallbackReadFully(long position, ByteBuffer buf) throws IOException {
     FSDataInputStream in = getInstance();
     // position to return to.
-    try (SeekBack back = new SeekBack(in)) {
-      if (buf.hasArray()) {
-        int len = buf.remaining();
-        ByteBuffer tmp = buf.duplicate();
-        tmp.limit(tmp.position() + len);
-        tmp = tmp.slice();
-        in.readFully(position, tmp.array(), tmp.position(), len);
-        buf.position(buf.position() + len);
-      }
+    if (buf.hasArray()) {
+      LOG.debug("reading directly into bytebuffer array via positionedRead");
+      int len = buf.remaining();
+      ByteBuffer tmp = buf.duplicate();
+      tmp.limit(tmp.position() + len);
+      tmp = tmp.slice();
+      in.readFully(position, tmp.array(), tmp.position(), len);
+      buf.position(buf.position() + len);
+      return;
     }
+    // no array.
+    // is the inner stream ByteBufferReadable? if so, read
+    // through that then seek back.
+    if (in.getWrappedStream() instanceof ByteBufferReadable) {
+      LOG.debug("reading bytebuffer through seek and read(ByteBuffer)");
+      try (SeekBack back = new SeekBack(in)) {
+        in.seek(position);
+        // but what if
+        in.read(buf);
+      }
+      return;
+    }
+
+    // final strategy, loop through with positioned read
+    // TODO
+    throw new IOException("todo");
+
+
   }
 
   /**

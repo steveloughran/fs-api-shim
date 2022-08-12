@@ -21,8 +21,12 @@ package org.apache.hadoop.fs.shim.impl;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import static org.apache.hadoop.fs.shim.functional.FutureIO.eval;
 
@@ -31,6 +35,7 @@ import static org.apache.hadoop.fs.shim.functional.FutureIO.eval;
  * The opening is asynchronous.
  */
 public class OpenFileThroughClassicAPI implements ExecuteOpenFile {
+  private static final Logger LOG = LoggerFactory.getLogger(OpenFileThroughClassicAPI.class);
 
   private final FileSystem fileSystem;
 
@@ -39,12 +44,17 @@ public class OpenFileThroughClassicAPI implements ExecuteOpenFile {
   }
 
   @Override
-  public CompletableFuture<FSDataInputStream> executeOpenFile(final OpenFileBuilder builder)
+  public CompletableFuture<FSDataInputStream> executeOpenFile(
+      final OpenFileBuilder source)
       throws IllegalArgumentException, UnsupportedOperationException, IOException {
-    if (!builder.getMandatoryKeys().isEmpty()) {
+
+    Path path = fileSystem.makeQualified(source.getPath());
+    LOG.debug("Opening file at {} through builder API", path);
+
+    if (!source.getMandatoryKeys().isEmpty()) {
       throw new IllegalArgumentException("Mandatory keys not supported");
     }
     return eval(() ->
-        fileSystem.open(builder.getPath()));
+        fileSystem.open(source.getPath()));
   }
 }

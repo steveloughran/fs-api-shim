@@ -121,7 +121,8 @@ public final class OpenFileThroughBuilderAPI
 
     FileStatus status = source.getStatus();
     FileSystem fs = getInstance();
-    Path path = source.getPath();
+    Path path = fs.makeQualified(source.getPath());
+    LOG.debug("Opening file at {} through builder API", path);
 
     try {
       Object builder = openFileMethod.invoke(fs, path);
@@ -138,15 +139,18 @@ public final class OpenFileThroughBuilderAPI
         must.invoke(builder, k, options.get(k));
       }
 
-      // a bit unsure about this, because s3a 3.3.0 raises an exception if
-      // the status is of the wrong type.
-      // hence the ability to disable it.
-
+      // s3a 3.3.0 raises an exception if
+      // the status.path != openFile path, so skip if true
+      // in case other stores have similar issues,  there is an option to disable it.
       if (status != null && enableWithFileStatus) {
-        // filestatus
-        Method withFileStatus =
-            builderClass.getMethod("withFileStatus", FileStatus.class);
-        withFileStatus.invoke(builder, status);
+        if (path.equals(status.getPath())) {
+          LOG.debug("Adding file status {}", status);
+          Method withFileStatus =
+              builderClass.getMethod("withFileStatus", FileStatus.class);
+          withFileStatus.invoke(builder, status);
+        } else {
+          LOG.debug("No adding file status as path doesn't match {}", status);
+        }
       }
       Method build = builderClass.getMethod("build");
       build.setAccessible(true);

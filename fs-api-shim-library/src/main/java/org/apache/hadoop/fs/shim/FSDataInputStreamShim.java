@@ -25,6 +25,10 @@ import java.nio.ByteBuffer;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.StreamCapabilities;
 
+/**
+ * FSDataInputStream Shim.
+ *
+ */
 public interface FSDataInputStreamShim extends APIShim<FSDataInputStream> {
 
   /**

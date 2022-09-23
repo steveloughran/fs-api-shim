@@ -28,11 +28,17 @@ import org.apache.hadoop.fs.shim.impl.FileSystemShimImpl;
  */
 public final class ShimBinding {
 
-  public static FileSystemShim shimFileSystem(FileSystem fs) {
-    return new FileSystemShimImpl(fs);
+  /**
+   * Shim FS APIs.
+   * @param fs
+   * @return the shim
+   */
+  public static FileSystemShim shimFileSystem(FileSystem filesystem) {
+    return new FileSystemShimImpl(filesystem);
   }
 
   public static FSDataInputStreamShim shimFSDataInputStream(
+      FileSystem filesystem,
       FSDataInputStream in) {
     return new FSDataInputStreamShimImpl(in);
   }

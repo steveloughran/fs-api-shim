@@ -48,15 +48,11 @@ bugs. It is the de-facto baseline API for all Hadoop runtimes/platforms.
 2. It is the first version whose client libraries work with Java 11.
 
 Libraries which want to use these new APIs must build with a hadoop version of 3.2.0
-*or later*. 
-
-Note: the maven build uses hadoop 2.10 for compilation, but it's a java 8 only build.
+*or later*.
 
 
 ## Shimmed Classes and their API extensions.
 
-In these tables, "hadoop.next" means "the next feature release of hadoop", as opposed to
-"the next security/critical bug release of 3.3.x".
 
 
 ## `org.apache.hadoop.fs.shim.FSDataInputStreamShim`
@@ -70,11 +66,11 @@ In these tables, "hadoop.next" means "the next feature release of hadoop", as op
 
 ## `org.apache.hadoop.fs.shim.FSDataInputStreamShim`
 
-| Method                     | Version     | JIRA                                                               | Fallback                        |
-|----------------------------|-------------|--------------------------------------------------------------------|---------------------------------|
-| `ByteBufferPositionedRead` | 3.3.0       | [HDFS-3246](https://issues.apache.org/jira/browse/HDFS-3246])      | Emulation                       |
-| Vectored IO                | hadoop.next | [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103) | Emulation |
-|                            |             |                                                                    |                                 |
+| Method                     | Version | JIRA                                                               | Fallback                        |
+|----------------------------|---------|--------------------------------------------------------------------|---------------------------------|
+| `ByteBufferPositionedRead` | 3.3.0   | [HDFS-3246](https://issues.apache.org/jira/browse/HDFS-3246])      | Emulation                       |
+| Vectored IO                | 3.3.5   | [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103) | Emulation |
+|                            |         |                                                                    |                                 |
 
 ### [HADOOP-15229](https://issues.apache.org/jira/browse/HADOOP-15229) Add FileSystem builder-based openFile() API to match createFile() (since 3.3.0)
 
@@ -101,7 +97,7 @@ The shim library only considers the API available if the methods are found and t
 probe is true. If, even then, an `UnsuportedOperationException` is thrown, the fallback routine
 is used for that call and all subsequent calls.
 
-### [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103). Vector IO. 3.3.5?
+### [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103). Vector IO. 3.3.5
 
 The Vector IO API of HADOOP-18103 offers a high performance scatter/gather API for accessing columnar data.
 By giving the filesystem clients more information about the plan of future reads, they can optimize
@@ -114,9 +110,8 @@ That means everything except the ftp and sftp connectors.
 ## Testing the library.
 
 
-_this is going to be fun_
-
-The plan is to provide contract tests (subclasses of `hadoop-common` test `AbstractFSContractTestBase`) for different shim classes.
+The `fs-api-shim-library` module's test JAR contains contract tests
+(subclasses of `hadoop-common` test `AbstractFSContractTestBase`) for different shim classes.
 the library module's implementations will verify that when executed on older versions they work/downgrade/fail as expected.
 The XML contracts will declare what APIs are available for that store; separate files will be needed for each
 release and (somehow) the appropriate version identified.
@@ -129,7 +124,7 @@ a reference implementation.
 A separate module will run the same test suites against a later version of hadoop, and expect different outcomes.
 
 The outcomes will vary with build, so will have to be dynamic.
-There will be profiles for hadoop 3.2.4, hadoop 3.3.4, cloudera CDP 7.1.8 nd hadoop-3.4.0 (-SNAPSHOT) initially.
+There will be profiles for hadoop 3.2.4, hadoop 3.3.4, cloudera CDP 7.1.8 nd hadoop-3.3.5 initially.
 
 For those `ByteBufferPositionedRead` a minihdfs cluster will be neede for the test suite,
 or an input stream with methods of the same name and arguments added.

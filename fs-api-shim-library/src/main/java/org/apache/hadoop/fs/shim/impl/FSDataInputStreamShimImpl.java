@@ -19,6 +19,7 @@
 package org.apache.hadoop.fs.shim.impl;
 
 import java.io.Closeable;
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,6 +37,8 @@ import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
 
 /**
  * invoke or emulate ByteBufferPositionedReadable.
+ * There's an expectation that the stream implements readFully() efficienty, and
+ * is has a lazy seek() call, or the cost of a seek() is so low as to not matter.
  */
 public class FSDataInputStreamShimImpl
     extends AbstractAPIShim<FSDataInputStream>
@@ -43,6 +46,12 @@ public class FSDataInputStreamShimImpl
 
   private static final Logger LOG = LoggerFactory.getLogger(FSDataInputStreamShimImpl.class);
 
+  /**
+   * buffer size for fallbacks when reading into ByteBuffers which are not also
+   * arrays.
+   * TODO: make configurable?
+   */
+  public static final int TEMPORARY_BUFFER = 1024 * 128;
 
   /**
    * {@code ByteBufferPositionedRead.readFully()}.
@@ -55,9 +64,12 @@ public class FSDataInputStreamShimImpl
   private final Invocation byteBufferPositionedReadFully;
   private final AtomicBoolean byteBufferPositionedReadFunctional;
 
+  private final AtomicBoolean byteBufferReadableAvailable;
+
   /**
    * Constructor.
-   * @param instalnce Instance being shimmed.
+   *
+   * @param instance Instance being shimmed.
    */
   public FSDataInputStreamShimImpl(
       final FSDataInputStream instance) {
@@ -67,19 +79,24 @@ public class FSDataInputStreamShimImpl
 
     byteBufferPositionedReadFully =
         byteBufferPositionedRead.available()
-            ? getInvocation(getClazz(), "readFully",
-            Long.class, ByteBuffer.class)
+            ? getInvocation(getClazz(), "readFully", Long.class, ByteBuffer.class)
             : unavailable("readFully");
     byteBufferPositionedReadFunctional = new AtomicBoolean(
         byteBufferPositionedRead.available()
             && getInstance().hasCapability(StandardStreamCapabilities.PREADBYTEBUFFER));
+    // declare ByteBufferReadable available if the inner stream supports it.
+    // if an attempt to use it fails, it will downgrade
+    byteBufferReadableAvailable = new AtomicBoolean(
+        instance.getWrappedStream() instanceof ByteBufferReadable);
   }
 
-  @Override public final boolean byteBufferPositionedReadFunctional() {
+  @Override
+  public final boolean byteBufferPositionedReadFunctional() {
     return byteBufferPositionedReadFunctional.get();
   }
 
-  @Override public int read(long position, ByteBuffer buf) throws IOException {
+  @Override
+  public int read(long position, ByteBuffer buf) throws IOException {
     if (byteBufferPositionedReadFunctional()) {
       try {
         return (int) byteBufferPositionedRead.invoke(getInstance(), position, buf);
@@ -94,7 +111,8 @@ public class FSDataInputStreamShimImpl
     return (int) byteBufferPositionedRead.invoke(getInstance(), position, buf);
   }
 
-  @Override public void readFully(long position, ByteBuffer buf) throws IOException {
+  @Override
+  public void readFully(long position, ByteBuffer buf) throws IOException {
     if (byteBufferPositionedReadFunctional()) {
       try {
         byteBufferPositionedReadFully.invoke(getInstance(), position, buf);
@@ -113,90 +131,152 @@ public class FSDataInputStreamShimImpl
    * Fallback implementation of PositionedReadable: read into a buffer
    * Based on some of the hdfs code.
    * {@code DFSInputStream.actualGetFromOneDataNode()}.
+   *
    * @param position position within file
    * @param buf the ByteBuffer to receive the results of the read operation.
+   *
    * @throws IOException failure
    */
   public synchronized void fallbackReadFully(long position, ByteBuffer buf) throws IOException {
     FSDataInputStream in = getInstance();
+    int len = buf.remaining();
+    LOG.debug("read @{} {} bytes", position, len);
     // position to return to.
     if (buf.hasArray()) {
-      LOG.debug("reading directly into bytebuffer array via positionedRead");
-      int len = buf.remaining();
-      ByteBuffer tmp = buf.duplicate();
-      tmp.limit(tmp.position() + len);
-      tmp = tmp.slice();
-      in.readFully(position, tmp.array(), tmp.position(), len);
-      buf.position(buf.position() + len);
+      readIntoArrayByteBufferThroughReadFully(position, buf, len);
       return;
     }
     // no array.
     // is the inner stream ByteBufferReadable? if so, read
     // through that then seek back.
-    if (in.getWrappedStream() instanceof ByteBufferReadable) {
+    if (byteBufferReadableAvailable.get()) {
       LOG.debug("reading bytebuffer through seek and read(ByteBuffer)");
-      try (SeekBack back = new SeekBack(in)) {
-        in.seek(position);
-        // but what if
-        in.read(buf);
+      try (SeekToThenBack back = new SeekToThenBack(position)) {
+        while (buf.remaining() > 0) {
+          int bytesRead = in.read(buf);
+          if (bytesRead < 0) {
+            throw new EOFException("No more data in stream; needed "
+                + buf.remaining() + " to complete the read");
+          }
+        }
+      } catch (UnsupportedOperationException ex) {
+        LOG.debug("stream does not support ByteBufferReadable", ex);
+        // don't try using this again
+        byteBufferReadableAvailable.set(false);
       }
       return;
     }
 
-    // final strategy, loop through with positioned read
-    // TODO
-    throw new IOException("todo");
+    // final strategy.
+    // buffer isn't an array, so need to create a smaller one then read via a series of readFully
+    // calls.
+    int bufferSize = Math.min(len, TEMPORARY_BUFFER);
+    byte[] byteArray = new byte[bufferSize];
+    long nextReadPosition = position;
+    while (buf.remaining() > 0) {
+      int bytesToRead = Math.min(bufferSize, buf.remaining());
+      getInstance().readFully(nextReadPosition, byteArray, 0,
+          bytesToRead);
+      buf.put(byteArray, 0, bytesToRead);
+      // move forward in the file
+      nextReadPosition += bytesToRead;
+    }
 
+  }
 
+  /**
+   * Read directly into bytebuffer array via PositionedReadable.readFully()");
+   *
+   * @param position
+   * @param buf
+   * @param in
+   * @param len
+   *
+   * @throws IOException
+   */
+  private void readIntoArrayByteBufferThroughReadFully(
+      final long position,
+      final ByteBuffer buf,
+      final int len) throws IOException {
+    LOG.debug("reading directly into bytebuffer array via PositionedReadable.readFully()");
+    ByteBuffer tmp = buf.duplicate();
+    tmp.limit(tmp.position() + len);
+    tmp = tmp.slice();
+    getInstance().readFully(position, tmp.array(), tmp.position(), len);
+    buf.position(buf.position() + len);
   }
 
   /**
    * Fallback implementation of PositionedReadable: read into a buffer
    * Based on some of the hdfs code.
    * {@code DFSInputStream.actualGetFromOneDataNode()}.
+   *
    * @param position position within file
    * @param buf the ByteBuffer to receive the results of the read operation.
+   *
    * @return bytes read
+   *
    * @throws IOException failure
    */
-  public synchronized int fallbackRead(long position, ByteBuffer buf) throws IOException {
+  public synchronized int fallbackRead(long position, ByteBuffer buf)
+      throws IOException {
     FSDataInputStream in = getInstance();
+    int len = buf.remaining();
     // position to return to.
-    try (SeekBack back = new SeekBack(in)) {
-      if (buf.hasArray()) {
-        int len = buf.remaining();
-        ByteBuffer tmp = buf.duplicate();
-        tmp.limit(tmp.position() + len);
-        tmp = tmp.slice();
-        int read = in.read(position, tmp.array(), tmp.position(), len);
-        buf.position(buf.position() + read);
-        return read;
-      }
+    if (buf.hasArray()) {
+      ByteBuffer tmp = buf.duplicate();
+      tmp.limit(tmp.position() + len);
+      tmp = tmp.slice();
+      int read = in.read(position, tmp.array(), tmp.position(), len);
+      buf.position(buf.position() + read);
+      return read;
+    } else {
+      // only read up to the temp buffer; caller gets to
+      // ask for more if it they want it
+      int bufferSize = Math.min(len, TEMPORARY_BUFFER);
+      byte[] byteArray = new byte[bufferSize];
+      int read = getInstance().read(position, byteArray, 0,
+          bufferSize);
+      buf.put(byteArray, 0, bufferSize);
+      return read;
     }
-    return 0;
+
   }
 
   /**
    * class to seek back to the original position after a read;
    * intended for use in try with closeable.
    */
-  public static final class SeekBack implements Closeable {
-    private final FSDataInputStream in;
+  public final class SeekToThenBack implements Closeable {
+
     private final long pos;
 
-    public SeekBack(FSDataInputStream in) throws IOException {
-      this.in = in;
-      this.pos = in.getPos();
+    public SeekToThenBack(long newPos) throws IOException {
+      this.pos = getInstance().getPos();
+      seekTo(newPos);
+    }
+
+    /**
+     * On demand seek.
+     *
+     * @param newPos new position
+     *
+     * @throws IOException failure.
+     */
+    private void seekTo(long newPos) throws IOException {
+      if (getInstance().getPos() != pos) {
+        getInstance().seek(pos);
+      }
     }
 
     /**
      * Seek back to the original position if needed.
+     *
      * @throws IOException failure
      */
-    @Override public void close() throws IOException {
-      if (in.getPos() != pos) {
-        in.seek(pos);
-      }
+    @Override
+    public void close() throws IOException {
+      seekTo(pos);
     }
 
   }

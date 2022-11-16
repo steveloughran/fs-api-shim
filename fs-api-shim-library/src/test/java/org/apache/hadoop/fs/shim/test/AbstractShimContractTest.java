@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.fs.shim.test;
 
+import java.lang.reflect.InvocationTargetException;
+
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,8 @@ import org.apache.hadoop.fs.contract.AbstractFSContract;
 import org.apache.hadoop.fs.contract.AbstractFSContractTestBase;
 import org.apache.hadoop.fs.shim.test.binding.FileContract;
 import org.apache.hadoop.util.VersionInfo;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Abstract FS contract test.
@@ -53,17 +57,26 @@ public class AbstractShimContractTest extends AbstractFSContractTestBase
     return versionCapabilities;
   }
 
-  public void setVersionCapabilities(final StreamCapabilities versionCapabilities) {
-    this.versionCapabilities = versionCapabilities;
-  }
-
   @Override
   protected AbstractFSContract createContract(final Configuration conf) {
-    return new FileContract(conf);
+    FileContract contract = new FileContract(conf);
+    return contract;
   }
 
   @Override
   public boolean hasCapability(final String capability) {
     return versionCapabilities.hasCapability(capability);
+  }
+
+  @Override
+  public void setup() throws Exception {
+    super.setup();
+
+    // also do the binding stuff here
+    Configuration bindingConf = new Configuration(false);
+    bindingConf.addResource("contract/binding.xml");
+    Class<? extends StreamCapabilities> binding = requireNonNull(
+        bindingConf.getClass("hadoop.test.binding", null, StreamCapabilities.class));
+    versionCapabilities = binding.getConstructor().newInstance();
   }
 }

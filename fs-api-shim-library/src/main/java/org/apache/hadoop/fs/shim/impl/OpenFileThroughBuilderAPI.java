@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.shim.functional.FutureIO;
 
-import static org.apache.hadoop.fs.shim.impl.ShimUtils.getMethod;
+import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.getMethod;
 
 /**
  * Open a file through the builder API.

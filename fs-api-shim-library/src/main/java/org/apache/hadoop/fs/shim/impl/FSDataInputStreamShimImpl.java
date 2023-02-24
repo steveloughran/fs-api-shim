@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.shim.StandardStreamCapabilities;
 import org.apache.hadoop.fs.shim.VectorFileRange;
 
 import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
-import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
+import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
 import static org.apache.hadoop.fs.shim.impl.VectoredRangeReadUtils.readInDirectBuffer;
 import static org.apache.hadoop.util.StringUtils.toLowerCase;
 
@@ -80,12 +80,13 @@ public class FSDataInputStreamShimImpl
   public FSDataInputStreamShimImpl(
       final FSDataInputStream instance) {
     super(FSDataInputStream.class, instance);
-    byteBufferPositionedRead = getInvocation(getClazz(), "read",
+    byteBufferPositionedRead = loadInvocation(getClazz(), "read",
+        Integer.class,
         Long.class, ByteBuffer.class);
 
     byteBufferPositionedReadFully =
         byteBufferPositionedRead.available()
-            ? getInvocation(getClazz(), "readFully", Long.class, ByteBuffer.class)
+            ? loadInvocation(getClazz(), "readFully", Void.class, Long.class, ByteBuffer.class)
             : unavailable("readFully");
     isByteBufferPositionedReadAvailable = new AtomicBoolean(
         byteBufferPositionedRead.available()

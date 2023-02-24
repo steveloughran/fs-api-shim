@@ -19,7 +19,6 @@ package org.apache.hadoop.fs.shim.functional;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import javax.annotation.Nullable;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -58,7 +57,7 @@ public interface FutureDataInputStreamBuilder
    * @return the builder.
    */
   default FutureDataInputStreamBuilder withFileStatus(
-      @Nullable FileStatus status) {
+      FileStatus status) {
     return this;
   }
 

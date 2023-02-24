@@ -66,7 +66,21 @@ public final class Invocation<T> {
  public T invoke(
      final Object instance,
      final Object... parameters) throws IOException {
-    return (T)ShimUtils.invokeOperation(name, instance, method, parameters);
+    return (T) ShimReflectionSupport.invokeOperation(name, instance, method, parameters);
+  }
+
+  /**
+   * Invoke the method with exception unwrap/uprate.
+   * If {@link #method} is null, raise UnsupportedOperationException
+   * @param instance instance to invoke
+   * @param parameters parameters
+   * @return the result
+   * @throws RuntimeException on problems
+   */
+ public T invokeUnchecked(
+     final Object instance,
+     final Object... parameters) {
+    return (T) ShimReflectionSupport.invokeUnchecked(name, instance, method, parameters);
   }
 
   /**

@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED;
 import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED;
 import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT;
-import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
+import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
 
 /**
  * Shim for the Hadoop {@code FileSystem} class.
@@ -117,10 +117,11 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
     // the simpler methods.
     Class<FileSystem> clazz = getClazz();
 
-    hasPathCapabilityMethod = getInvocation(clazz, "hasPathCapability",
+    hasPathCapabilityMethod = loadInvocation(clazz, "hasPathCapability",
+        Boolean.class,
         Path.class, String.class);
 
-    msyncMethod = getInvocation(clazz, "msync");
+    msyncMethod = loadInvocation(clazz, "msync", Void.class);
 
     executeOpenFile = new OpenFileThroughAvailableOperation();
   }

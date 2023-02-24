@@ -20,7 +20,6 @@ package org.apache.hadoop.fs.shim.impl;
 
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -100,8 +99,7 @@ public abstract class FutureDataInputStreamBuilderImpl
   }
 
   @Override
-  public FutureDataInputStreamBuilder withFileStatus(
-      @Nullable FileStatus st) {
+  public FutureDataInputStreamBuilder withFileStatus(FileStatus st) {
     this.status = st;
     return this;
   }

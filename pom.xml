@@ -49,7 +49,7 @@
     <hadoop.version>2.10.2</hadoop.version>
 
     <!-- the hadoop version tested against -->
-    <hadoop.test.version>3.3.4</hadoop.test.version>
+    <hadoop.test.version>3.3.5</hadoop.test.version>
     <hadoop.3.2.test.version>3.2.4</hadoop.3.2.test.version>
 
     <junit.version>4.13.2</junit.version>
@@ -128,7 +128,8 @@
             <groupId>log4j</groupId>
             <artifactId>*</artifactId>
           </exclusion>
-        </exclusions>      </dependency>
+        </exclusions>
+      </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-cloud-storage</artifactId>

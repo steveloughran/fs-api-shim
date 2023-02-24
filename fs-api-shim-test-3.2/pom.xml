@@ -30,7 +30,7 @@
 
   <name>fs-api-shim-test-3.2</name>
   <description>
-    Test against hadoop-3.2
+    Test against hadoop-3.2.x
   </description>
 
 

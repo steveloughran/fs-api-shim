@@ -22,7 +22,10 @@ import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.IntFunction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +34,12 @@ import org.apache.hadoop.fs.ByteBufferReadable;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.shim.FSDataInputStreamShim;
 import org.apache.hadoop.fs.shim.StandardStreamCapabilities;
+import org.apache.hadoop.fs.shim.VectorFileRange;
 
 import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
 import static org.apache.hadoop.fs.shim.impl.ShimUtils.getInvocation;
+import static org.apache.hadoop.fs.shim.impl.VectoredRangeReadUtils.readInDirectBuffer;
+import static org.apache.hadoop.util.StringUtils.toLowerCase;
 
 /**
  * invoke or emulate ByteBufferPositionedReadable.
@@ -56,15 +62,15 @@ public class FSDataInputStreamShimImpl
   /**
    * {@code ByteBufferPositionedRead.readFully()}.
    */
-  private final Invocation byteBufferPositionedRead;
+  private final Invocation<Integer> byteBufferPositionedRead;
 
   /**
    * {@code ByteBufferPositionedRead.readFully()}.
    */
-  private final Invocation byteBufferPositionedReadFully;
-  private final AtomicBoolean byteBufferPositionedReadFunctional;
+  private final Invocation<Void> byteBufferPositionedReadFully;
+  private final AtomicBoolean isByteBufferPositionedReadAvailable;
 
-  private final AtomicBoolean byteBufferReadableAvailable;
+  private final AtomicBoolean isByteBufferReadableAvailable;
 
   /**
    * Constructor.
@@ -81,39 +87,73 @@ public class FSDataInputStreamShimImpl
         byteBufferPositionedRead.available()
             ? getInvocation(getClazz(), "readFully", Long.class, ByteBuffer.class)
             : unavailable("readFully");
-    byteBufferPositionedReadFunctional = new AtomicBoolean(
+    isByteBufferPositionedReadAvailable = new AtomicBoolean(
         byteBufferPositionedRead.available()
-            && getInstance().hasCapability(StandardStreamCapabilities.PREADBYTEBUFFER));
+            && instance.hasCapability(StandardStreamCapabilities.PREADBYTEBUFFER));
     // declare ByteBufferReadable available if the inner stream supports it.
     // if an attempt to use it fails, it will downgrade
-    byteBufferReadableAvailable = new AtomicBoolean(
+    isByteBufferReadableAvailable = new AtomicBoolean(
         instance.getWrappedStream() instanceof ByteBufferReadable);
   }
 
   @Override
-  public final boolean byteBufferPositionedReadFunctional() {
-    return byteBufferPositionedReadFunctional.get();
+  public boolean hasCapability(final String capability) {
+    switch (toLowerCase(capability)) {
+    case "in:preadbytebuffer":
+      // positioned read is always available
+      return true;
+    case "in:readvectored":
+      // because of the inability to reference FileRange objects,
+      // there's no way to do passthrough of PositionedReadable.readVectored()
+      return false;
+    default:
+      return getInstance().hasCapability(capability);
+    }
+  }
+
+  @Override
+  public int read(final long position, final byte[] buffer, final int offset, final int length)
+      throws IOException {
+    return getInstance().read(position, buffer, offset, length);
+  }
+
+  @Override
+  public void readFully(final long position,
+      final byte[] buffer,
+      final int offset,
+      final int length) throws IOException {
+    getInstance().readFully(position, buffer, offset, length);
+  }
+
+  @Override
+  public void readFully(final long position, final byte[] buffer) throws IOException {
+    getInstance().readFully(position, buffer);
+  }
+
+  @Override
+  public final boolean isByteBufferPositionedReadAvailable() {
+    return isByteBufferPositionedReadAvailable.get();
   }
 
   @Override
   public int read(long position, ByteBuffer buf) throws IOException {
-    if (byteBufferPositionedReadFunctional()) {
+    if (isByteBufferPositionedReadAvailable()) {
       try {
-        return (int) byteBufferPositionedRead.invoke(getInstance(), position, buf);
+        return byteBufferPositionedRead.invoke(getInstance(), position, buf);
       } catch (UnsupportedOperationException e) {
         LOG.debug("Failure to invoke read() on {}", getInstance(), e);
         // note the api isn't actually available,
         // before falling back.
-        byteBufferPositionedReadFunctional.set(false);
+        isByteBufferPositionedReadAvailable.set(false);
       }
     }
     fallbackRead(position, buf);
-    return (int) byteBufferPositionedRead.invoke(getInstance(), position, buf);
+    return byteBufferPositionedRead.invoke(getInstance(), position, buf);
   }
 
   @Override
   public void readFully(long position, ByteBuffer buf) throws IOException {
-    if (byteBufferPositionedReadFunctional()) {
+    if (isByteBufferPositionedReadAvailable()) {
       try {
         byteBufferPositionedReadFully.invoke(getInstance(), position, buf);
         return;
@@ -121,7 +161,7 @@ public class FSDataInputStreamShimImpl
         LOG.debug("Failure to invoke readFully() on {}", getInstance(), e);
         // note the api isn't actually available,
         // before falling back.
-        byteBufferPositionedReadFunctional.set(false);
+        isByteBufferPositionedReadAvailable.set(false);
       }
     }
     fallbackReadFully(position, buf);
@@ -149,7 +189,7 @@ public class FSDataInputStreamShimImpl
     // no array.
     // is the inner stream ByteBufferReadable? if so, read
     // through that then seek back.
-    if (byteBufferReadableAvailable.get()) {
+    if (isByteBufferReadableAvailable.get()) {
       LOG.debug("reading bytebuffer through seek and read(ByteBuffer)");
       try (SeekToThenBack back = new SeekToThenBack(position)) {
         while (buf.remaining() > 0) {
@@ -162,7 +202,7 @@ public class FSDataInputStreamShimImpl
       } catch (UnsupportedOperationException ex) {
         LOG.debug("stream does not support ByteBufferReadable", ex);
         // don't try using this again
-        byteBufferReadableAvailable.set(false);
+        isByteBufferReadableAvailable.set(false);
       }
       return;
     }
@@ -202,7 +242,7 @@ public class FSDataInputStreamShimImpl
     ByteBuffer tmp = buf.duplicate();
     tmp.limit(tmp.position() + len);
     tmp = tmp.slice();
-    getInstance().readFully(position, tmp.array(), tmp.position(), len);
+    readFully(position, tmp.array(), tmp.position(), len);
     buf.position(buf.position() + len);
   }
 
@@ -220,14 +260,13 @@ public class FSDataInputStreamShimImpl
    */
   public synchronized int fallbackRead(long position, ByteBuffer buf)
       throws IOException {
-    FSDataInputStream in = getInstance();
     int len = buf.remaining();
     // position to return to.
     if (buf.hasArray()) {
       ByteBuffer tmp = buf.duplicate();
       tmp.limit(tmp.position() + len);
       tmp = tmp.slice();
-      int read = in.read(position, tmp.array(), tmp.position(), len);
+      int read = read(position, tmp.array(), tmp.position(), len);
       buf.position(buf.position() + read);
       return read;
     } else {
@@ -235,8 +274,7 @@ public class FSDataInputStreamShimImpl
       // ask for more if it they want it
       int bufferSize = Math.min(len, TEMPORARY_BUFFER);
       byte[] byteArray = new byte[bufferSize];
-      int read = getInstance().read(position, byteArray, 0,
-          bufferSize);
+      int read = read(position, byteArray, 0, bufferSize);
       buf.put(byteArray, 0, bufferSize);
       return read;
     }
@@ -247,7 +285,7 @@ public class FSDataInputStreamShimImpl
    * class to seek back to the original position after a read;
    * intended for use in try with closeable.
    */
-  public final class SeekToThenBack implements Closeable {
+  private final class SeekToThenBack implements Closeable {
 
     private final long pos;
 
@@ -280,4 +318,84 @@ public class FSDataInputStreamShimImpl
     }
 
   }
+
+  @Override
+  public void readVectoredRanges(List<VectorFileRange> ranges,
+      IntFunction<ByteBuffer> allocate) throws IOException {
+    // fallback code
+    readVectoredLegacy(ranges, allocate);
+  }
+
+  /**
+   * This is the default implementation which iterates through the ranges
+   * to read each synchronously, but the intent is that subclasses
+   * can make more efficient readers.
+   * The data or exceptions are pushed into {@link VectorFileRange#getData()}.
+   *
+   * @param ranges the byte ranges to read
+   * @param allocate the byte buffer allocation
+   */
+  private void readVectoredLegacy(
+      List<? extends VectorFileRange> ranges,
+      IntFunction<ByteBuffer> allocate) {
+    for (VectorFileRange range : ranges) {
+      range.setData(readRangeFrom(range, allocate));
+    }
+  }
+
+  /**
+   * Synchronously reads a range from the stream dealing with the combinations
+   * of ByteBuffers buffers and PositionedReadable streams.
+   *
+   * @param range the range to read
+   * @param allocate the function to allocate ByteBuffers
+   *
+   * @return the CompletableFuture that contains the read data
+   */
+  private CompletableFuture<ByteBuffer> readRangeFrom(VectorFileRange range,
+      IntFunction<ByteBuffer> allocate) {
+    CompletableFuture<ByteBuffer> result = new CompletableFuture<>();
+    try {
+      ByteBuffer buffer = allocate.apply(range.getLength());
+      if (isByteBufferPositionedReadAvailable()) {
+        // use readFully if present
+        readFully(range.getOffset(), buffer);
+        buffer.flip();
+      } else {
+        readNonByteBufferPositionedReadable(range, buffer);
+      }
+      result.complete(buffer);
+    } catch (IOException ioe) {
+      result.completeExceptionally(ioe);
+    }
+    return result;
+  }
+
+  /**
+   * Fall back to classic.
+   *
+   * @param range
+   * @param buffer
+   *
+   * @throws IOException
+   */
+  private void readNonByteBufferPositionedReadable(
+      VectorFileRange range,
+      ByteBuffer buffer) throws IOException {
+    final FSDataInputStream stream = getInstance();
+
+    if (buffer.isDirect()) {
+      readInDirectBuffer(range.getLength(),
+          buffer,
+          (position, buffer1, offset, length) -> {
+            readFully(position, buffer1, offset, length);
+            return null;
+          });
+      buffer.flip();
+    } else {
+      readFully(range.getOffset(), buffer.array(),
+          buffer.arrayOffset(), range.getLength());
+    }
+  }
+
 }

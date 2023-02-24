@@ -21,15 +21,23 @@ package org.apache.hadoop.fs.shim;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.function.IntFunction;
 
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.StreamCapabilities;
 
 /**
  * FSDataInputStream Shim.
+ * This implements all of PositionedReadable, with the non vector IO methods
+ * being passed through to the caller.
+ * StreamCapabilities calls may be processed here before being passed back,
+ * filtering out disabled options.
  *
  */
-public interface FSDataInputStreamShim extends APIShim<FSDataInputStream> {
+public interface FSDataInputStreamShim extends APIShim<FSDataInputStream>,
+    PositionedReadable, StreamCapabilities {
 
   /**
    * Is ByteBufferPositionedRead in the wrapped stream functional?
@@ -40,7 +48,7 @@ public interface FSDataInputStreamShim extends APIShim<FSDataInputStream> {
    *
    * @return true if the ByteBufferPositionedRead methods can be used.
    */
-  boolean byteBufferPositionedReadFunctional();
+  boolean isByteBufferPositionedReadAvailable();
 
   /**
    * ByteBufferPositionedReadable.read().
@@ -101,4 +109,31 @@ public interface FSDataInputStreamShim extends APIShim<FSDataInputStream> {
    * @see #read(long, ByteBuffer)
    */
   void readFully(long position, ByteBuffer buf) throws IOException;
+
+  /**
+   * Read fully a list of file ranges asynchronously from this file.
+   * The default iterates through the ranges to read each synchronously, but
+   * the intent is that FSDataInputStream subclasses can make more efficient
+   * readers.
+   * As a result of the call, each range will have FileRange.setData(CompletableFuture)
+   * called with a future that when complete will have a ByteBuffer with the
+   * data from the file's range.
+   * <p>
+   * The position returned by getPos() after readVectored() is undefined.
+   * </p>
+   * <p>
+   * If a file is changed while the readVectored() operation is in progress, the output is
+   * undefined. Some ranges may have old data, some may have new and some may have both.
+   * </p>
+   * <p>
+   * While a readVectored() operation is in progress, normal read api calls may block.
+   * </p>
+   *
+   * @param ranges the byte ranges to read
+   * @param allocate the function to allocate ByteBuffer
+   *
+   * @throws IOException any IOE.
+   */
+  void readVectoredRanges(List<VectorFileRange> ranges,
+      IntFunction<ByteBuffer> allocate) throws IOException;
 }

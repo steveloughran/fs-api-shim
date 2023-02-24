@@ -115,10 +115,10 @@ public final class ShimUtils {
    * @param parameterTypes parameters
    * @return the method or null
    */
-  public static Invocation getInvocation(
+  public static <T> Invocation<T> getInvocation(
       Class<?> source, String name, Class<?>... parameterTypes) {
     try {
-      return new Invocation(name, source.getMethod(name, parameterTypes));
+      return new Invocation<T>(name, source.getMethod(name, parameterTypes));
     } catch (NoSuchMethodException | SecurityException e) {
       LOG.debug("Class {} does not implement {}", source, name);
       return new Invocation(name, null);

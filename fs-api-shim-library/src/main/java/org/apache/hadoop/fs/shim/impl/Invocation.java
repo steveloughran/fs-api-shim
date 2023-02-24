@@ -20,10 +20,10 @@ package org.apache.hadoop.fs.shim.impl;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import javax.annotation.Nullable;
 
 /**
  * A method which can be invoked.
+ * @param <T> return type.
  */
 public final class Invocation<T> {
 
@@ -35,14 +35,14 @@ public final class Invocation<T> {
   /**
    * Method to invoke.
    */
-  private final @Nullable Method method;
+  private final Method method;
 
   /**
    * Create.
    * @param name invocation name for error messages.
    * @param method method to invoke.
    */
-  public Invocation(final String name, final @Nullable Method method) {
+  public Invocation(final String name, final Method method) {
     this.name = name;
     this.method = method;
   }
@@ -74,7 +74,7 @@ public final class Invocation<T> {
    * @param name name for the exception text.
    * @return an invocation which always raises
    */
-  public static Invocation unavailable(String name) {
-    return new Invocation(name, null);
+  public static <T> Invocation<T> unavailable(String name) {
+    return new Invocation<T>(name, null);
   }
 }

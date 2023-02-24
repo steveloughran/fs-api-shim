@@ -19,7 +19,6 @@
 package org.apache.hadoop.fs.shim;
 
 import java.io.IOException;
-import javax.annotation.Nonnull;
 
 /**
  * The base interface which various FileSystem FileContext Builder
@@ -38,7 +37,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @param value value.
    * @return generic type B.
    */
-  B opt(@Nonnull String key, @Nonnull String value);
+  B opt(String key, String value);
 
   /**
    * Set optional boolean parameter for the Builder.
@@ -47,7 +46,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #opt(String, String)
    */
-  B opt(@Nonnull String key, boolean value);
+  B opt(String key, boolean value);
 
   /**
    * Set optional int parameter for the Builder.
@@ -57,7 +56,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #opt(String, String)
    */
-  B opt(@Nonnull String key, int value);
+  B opt(String key, int value);
 
   /**
    * Set optional float parameter for the Builder.
@@ -67,7 +66,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #opt(String, String)
    */
-  B opt(@Nonnull String key, float value);
+  B opt(String key, float value);
 
   /**
    * Set optional long parameter for the Builder.
@@ -77,7 +76,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #opt(String, String)
    */
-  B opt(@Nonnull String key, long value);
+  B opt(String key, long value);
 
   /**
    * Set optional double parameter for the Builder.
@@ -87,7 +86,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #opt(String, String)
    */
-  B opt(@Nonnull String key, double value);
+  B opt(String key, double value);
 
   /**
    * Set an array of string values as optional parameter for the Builder.
@@ -97,7 +96,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #opt(String, String)
    */
-  B opt(@Nonnull String key, @Nonnull String... values);
+  B opt(String key, String... values);
 
   /**
    * Set mandatory option to the Builder.
@@ -109,7 +108,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @param value value.
    * @return generic type B.
    */
-  B must(@Nonnull String key, @Nonnull String value);
+  B must(String key, String value);
 
   /**
    * Set mandatory boolean option.
@@ -119,7 +118,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #must(String, String)
    */
-  B must(@Nonnull String key, boolean value);
+  B must(String key, boolean value);
 
   /**
    * Set mandatory int option.
@@ -129,7 +128,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #must(String, String)
    */
-  B must(@Nonnull String key, int value);
+  B must(String key, int value);
 
   /**
    * Set mandatory float option.
@@ -139,7 +138,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #must(String, String)
    */
-  B must(@Nonnull String key, float value);
+  B must(String key, float value);
 
   /**
    * Set mandatory long option.
@@ -149,7 +148,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #must(String, String)
    */
-  B must(@Nonnull String key, long value);
+  B must(String key, long value);
 
   /**
    * Set mandatory double option.
@@ -159,7 +158,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #must(String, String)
    */
-  B must(@Nonnull String key, double value);
+  B must(String key, double value);
 
   /**
    * Set a string array as mandatory option.
@@ -169,7 +168,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #must(String, String)
    */
-  B must(@Nonnull String key, @Nonnull String... values);
+  B must(String key, String... values);
 
   /**
    * Instantiate the object which was being built.

@@ -58,7 +58,14 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
    */
   private final OpenFileThroughBuilderAPI openFileThroughBuilder;
 
+  /**
+   * Should the openFile() API be used? default is false.
+   */
   private final AtomicBoolean useOpenFileAPI = new AtomicBoolean(false);
+
+  /**
+   * File Opener.
+   */
   private final OpenFileThroughAvailableOperation executeOpenFile;
 
   /**

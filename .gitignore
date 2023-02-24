@@ -23,3 +23,5 @@
 hs_err_pid*
 /fs-api-shim-library/target/
 /fs-api-shim-test/target/
+/fs-api-shim-test-3.2/target/
+/.idea/

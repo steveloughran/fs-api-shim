@@ -23,9 +23,10 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,11 +39,12 @@ import org.apache.hadoop.fs.shim.VectorFileRange;
 
 import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
-import static org.apache.hadoop.fs.shim.impl.VectoredRangeReadUtils.readInDirectBuffer;
 import static org.apache.hadoop.util.StringUtils.toLowerCase;
 
 /**
- * invoke or emulate ByteBufferPositionedReadable.
+ * Extend FS implementations with
+ * - implementation of ByteBufferPositionedReadable
+ * - readVectoredRanges()
  * There's an expectation that the stream implements readFully() efficienty, and
  * is has a lazy seek() call, or the cost of a seek() is so low as to not matter.
  */
@@ -73,6 +75,18 @@ public class FSDataInputStreamShimImpl
   private final AtomicBoolean isByteBufferReadableAvailable;
 
   /**
+   * FileRange class. This could be shared.
+   */
+  private final FileRangeBridge fileRangeBridge;
+
+  /**
+   * readVectored() API.
+   * If present will be invoked without any fallback.
+   */
+  private final Invocation<Void> readVectored;
+
+
+  /**
    * Constructor.
    *
    * @param instance Instance being shimmed.
@@ -95,6 +109,14 @@ public class FSDataInputStreamShimImpl
     // if an attempt to use it fails, it will downgrade
     isByteBufferReadableAvailable = new AtomicBoolean(
         instance.getWrappedStream() instanceof ByteBufferReadable);
+    fileRangeBridge = new FileRangeBridge();
+    if (fileRangeBridge.bridgeAvailable()) {
+      readVectored = loadInvocation(getClazz(), "readVectored",
+          Void.class, List.class, Function.class);
+    } else {
+      readVectored = unavailable("readVectored");
+    }
+
   }
 
   @Override
@@ -104,9 +126,9 @@ public class FSDataInputStreamShimImpl
       // positioned read is always available
       return true;
     case "in:readvectored":
-      // because of the inability to reference FileRange objects,
-      // there's no way to do passthrough of PositionedReadable.readVectored()
-      return false;
+      // readVectored acceleration available if the API is loaded
+      // and the instance says it supports it
+      return readVectored.available() && getInstance().hasCapability(capability);
     default:
       return getInstance().hasCapability(capability);
     }
@@ -200,12 +222,13 @@ public class FSDataInputStreamShimImpl
                 + buf.remaining() + " to complete the read");
           }
         }
+        return;
       } catch (UnsupportedOperationException ex) {
         LOG.debug("stream does not support ByteBufferReadable", ex);
         // don't try using this again
         isByteBufferReadableAvailable.set(false);
+        /* and fall through into the final strategy */
       }
-      return;
     }
 
     // final strategy.
@@ -228,12 +251,11 @@ public class FSDataInputStreamShimImpl
   /**
    * Read directly into bytebuffer array via PositionedReadable.readFully()");
    *
-   * @param position
-   * @param buf
-   * @param in
-   * @param len
+   * @param position position within file
+   * @param buf the ByteBuffer to receive the results of the read operation.
+   * @param len length of data to read
    *
-   * @throws IOException
+   * @throws IOException failure
    */
   private void readIntoArrayByteBufferThroughReadFully(
       final long position,
@@ -254,7 +276,6 @@ public class FSDataInputStreamShimImpl
    *
    * @param position position within file
    * @param buf the ByteBuffer to receive the results of the read operation.
-   *
    * @return bytes read
    *
    * @throws IOException failure
@@ -288,6 +309,9 @@ public class FSDataInputStreamShimImpl
    */
   private final class SeekToThenBack implements Closeable {
 
+    /**
+     * Original position; this will be returned to in close.
+     */
     private final long pos;
 
     public SeekToThenBack(long newPos) throws IOException {
@@ -303,8 +327,8 @@ public class FSDataInputStreamShimImpl
      * @throws IOException failure.
      */
     private void seekTo(long newPos) throws IOException {
-      if (getInstance().getPos() != pos) {
-        getInstance().seek(pos);
+      if (getInstance().getPos() != newPos) {
+        getInstance().seek(newPos);
       }
     }
 
@@ -320,82 +344,55 @@ public class FSDataInputStreamShimImpl
 
   }
 
-  @Override
-  public void readVectoredRanges(List<VectorFileRange> ranges,
-      IntFunction<ByteBuffer> allocate) throws IOException {
-    // fallback code
-    readVectoredLegacy(ranges, allocate);
-  }
-
   /**
-   * This is the default implementation which iterates through the ranges
-   * to read each synchronously, but the intent is that subclasses
-   * can make more efficient readers.
-   * The data or exceptions are pushed into {@link VectorFileRange#getData()}.
+   * Declaration of the readVectored API.
+   * This is special in that the type of the list doesn't exist at compile time;
+   * it relies on type erasure to publish an interface with the exact same runtime
+   * signature as {@code PositionedReadable.readVectored(List<FileRange>}.
    *
    * @param ranges the byte ranges to read
-   * @param allocate the byte buffer allocation
+   * @param allocate the function to allocate ByteBuffer
+   *
+   * @throws IOException any IOE.
+   * @throws UnsupportedOperationException if invoked on older releases.
    */
-  private void readVectoredLegacy(
-      List<? extends VectorFileRange> ranges,
-      IntFunction<ByteBuffer> allocate) {
-    for (VectorFileRange range : ranges) {
-      range.setData(readRangeFrom(range, allocate));
-    }
+  public void readVectored(List<?> ranges,
+      IntFunction<ByteBuffer> allocate) throws IOException {
+
+    // if the api is available on PositionedReadable, invoke it.
+    // if it isn't, this method can only be invoked on direct
+    // access to FSDataInputStreamShimImpl. So fail.
+    readVectored.invoke(getInstance(), ranges, allocate);
   }
 
   /**
-   * Synchronously reads a range from the stream dealing with the combinations
-   * of ByteBuffers buffers and PositionedReadable streams.
+   * The shim method, which will invoke readVectored() if present,
+   * and fallback to byte buffer/positioned read calls if not.
+   * @param ranges the byte ranges to read
+   * @param allocate the function to allocate ByteBuffer
    *
-   * @param range the range to read
-   * @param allocate the function to allocate ByteBuffers
-   *
-   * @return the CompletableFuture that contains the read data
+   * @throws IOException IO failure.
    */
-  private CompletableFuture<ByteBuffer> readRangeFrom(VectorFileRange range,
-      IntFunction<ByteBuffer> allocate) {
-    CompletableFuture<ByteBuffer> result = new CompletableFuture<>();
-    try {
-      ByteBuffer buffer = allocate.apply(range.getLength());
-      if (isByteBufferPositionedReadAvailable()) {
-        // use readFully if present
-        readFully(range.getOffset(), buffer);
-        buffer.flip();
-      } else {
-        readNonByteBufferPositionedReadable(range, buffer);
-      }
-      result.complete(buffer);
-    } catch (IOException ioe) {
-      result.completeExceptionally(ioe);
-    }
-    return result;
-  }
 
-  /**
-   * Fall back to classic.
-   *
-   * @param range
-   * @param buffer
-   *
-   * @throws IOException
-   */
-  private void readNonByteBufferPositionedReadable(
-      VectorFileRange range,
-      ByteBuffer buffer) throws IOException {
-    final FSDataInputStream stream = getInstance();
+  @Override
+  public void readVectoredRanges(
+      List<VectorFileRange> ranges,
+      IntFunction<ByteBuffer> allocate)
+      throws IOException {
 
-    if (buffer.isDirect()) {
-      readInDirectBuffer(range.getLength(),
-          buffer,
-          (position, buffer1, offset, length) -> {
-            readFully(position, buffer1, offset, length);
-            return null;
-          });
-      buffer.flip();
+    // if the readRange API is present, convert the arguments and delegate.
+    if (readVectored.available()) {
+      final List<Object> list = ranges.stream()
+          .map(fileRangeBridge::toFileRange)
+          .collect(Collectors.toList());
+      readVectored(list, allocate);
     } else {
-      readFully(range.getOffset(), buffer.array(),
-          buffer.arrayOffset(), range.getLength());
+      // one of ranges.
+      // fallback code
+      VectoredRangeReadImpl.readRanges(this,
+          isByteBufferPositionedReadAvailable(),
+          ranges,
+          allocate);
     }
   }
 

@@ -130,7 +130,7 @@ public final class ShimReflectionSupport {
    * @param <T> return type
    * @param returnType return type class for the compiler to be happy
    * @param parameterTypes parameters
-   * @return the method or null
+   * @return the method or "unavailable"
    */
   public static <T> Invocation<T> loadInvocation(
       Class<?> source, String name, Class<? extends T> returnType, Class<?>... parameterTypes) {

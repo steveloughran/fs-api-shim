@@ -19,6 +19,7 @@
 package org.apache.hadoop.fs.shim.impl;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Method;
 
 /**
@@ -61,7 +62,9 @@ public final class Invocation<T> {
    * @param instance instance to invoke
    * @param parameters parameters
    * @return the result
-   * @throws IOException when converting/unwrappping thrown exceptions other than RTEs.
+   * @throws UnsupportedOperationException if the method is null
+   * @throws RuntimeException for all RTEs raised by invoked methods except UncheckedIOEs
+   * @throws IOException when converting/unwrappping thrown exceptions
    */
  public T invoke(
      final Object instance,
@@ -75,7 +78,9 @@ public final class Invocation<T> {
    * @param instance instance to invoke
    * @param parameters parameters
    * @return the result
-   * @throws RuntimeException on problems
+   * @throws UnsupportedOperationException if the method is null
+   * @throws RuntimeException for all RTEs raised by invoked methods except UncheckedIOEs
+   * @throws UncheckedIOException wrapped IOE
    */
  public T invokeUnchecked(
      final Object instance,

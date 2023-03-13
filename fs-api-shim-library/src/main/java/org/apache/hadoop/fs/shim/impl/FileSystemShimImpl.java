@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.shim.FileSystemShim;
 import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 
 import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED;
+import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT;
 import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED;
 import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
@@ -94,7 +95,7 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
     // use the builder if present, and configured.
     OpenFileThroughBuilderAPI builderAPI = null;
     Configuration conf = instance.getConf();
-    if (conf.getBoolean(FS_OPTION_SHIM_OPENFILE_ENABLED, true)) {
+    if (conf.getBoolean(FS_OPTION_SHIM_OPENFILE_ENABLED, FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT)) {
 
       boolean withFileStatus = conf.getBoolean(FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED,
           FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT);

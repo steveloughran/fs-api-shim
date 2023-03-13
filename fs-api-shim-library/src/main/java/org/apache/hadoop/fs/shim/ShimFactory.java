@@ -18,34 +18,35 @@
 
 package org.apache.hadoop.fs.shim;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.function.IntFunction;
-
-import org.apache.hadoop.fs.PositionedReadable;
-
-/**
- * Support for vectored IO.
- */
-public class VectorIOShim {
-
-
-
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.shim.impl.FSDataInputStreamShimImpl;
+import org.apache.hadoop.fs.shim.impl.FileSystemShimImpl;
 
 /**
- * This is the default implementation which iterates through the ranges
- * to read each synchronously, but the intent is that subclasses
- * can make more efficient readers.
- * The data or exceptions are pushed into {@link VectorFileRange#getData()}.
- * @param stream the stream to read the data from
- * @param ranges the byte ranges to read
- * @param allocate the byte buffer allocation
+ * Binding class to create shim instances.
  */
-public static void readVectored(PositionedReadable stream,
-                                List<? extends VectorFileRange> ranges,
-                                IntFunction<ByteBuffer> allocate) {
+public final class ShimFactory {
 
-}
+  /**
+   * Shim FS APIs.
+   * @param fs
+   * @return the shim
+   */
+  public static FileSystemShim shimFileSystem(FileSystem filesystem) {
+    return new FileSystemShimImpl(filesystem);
+  }
 
+  /**
+   * Shim an FSDataInputStream instance.
+   *
+   * @param in the stream
+   *
+   * @return the shim
+   */
+  public static FSDataInputStreamShim shimFSDataInputStream(
+      FSDataInputStream in) {
+    return new FSDataInputStreamShimImpl(in);
+  }
 
 }

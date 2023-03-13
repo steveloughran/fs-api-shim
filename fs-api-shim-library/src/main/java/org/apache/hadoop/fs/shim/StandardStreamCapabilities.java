@@ -62,13 +62,24 @@ public interface StandardStreamCapabilities {
   String READBYTEBUFFER = "in:readbytebuffer";
 
   /**
+   * Does the stream support accelerated vectored reads?
+   * The API is <i>always</i> available; this is about
+   * whether or not the stream offers a custom, performance
+   * implementation.
+   */
+  String READVECTORED = "in:readvectored";
+
+  /**
    * Stream read(long, ByteBuffer) capability implemented by
    * {@code ByteBufferPositionedReadable#read(long, java.nio.ByteBuffer)}.
+   * This is always offered by the {@link FSDataInputStreamShim} class.
    */
   String PREADBYTEBUFFER = "in:preadbytebuffer";
 
   /**
    * IOStatisticsSource API.
+   * There's no shim support as it is just too complicated
+   * in terms of datatypes.
    */
   String IOSTATISTICS = "iostatistics";
 

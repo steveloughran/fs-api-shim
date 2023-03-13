@@ -50,6 +50,10 @@ public interface FileSystemShim extends APIShim<FileSystem> {
    */
   boolean openFileFound();
 
+  /**
+   * Is the path capabilities API available?
+   * @return true if the API is found on the underlying filesystem.
+   */
   boolean pathCapabilitiesFound();
 
   /**
@@ -75,7 +79,8 @@ public interface FileSystemShim extends APIShim<FileSystem> {
   boolean msyncFound();
 
   /**
-   * Synchronize client metadata state.
+   * Synchronize client metadata state; relevant for
+   * HDFS where it may be a slow operation.
    * <p>
    * In many versions of hadoop, but not cloudera CDH7.
    * A no-op if not implemented.

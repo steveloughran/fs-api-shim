@@ -119,16 +119,22 @@ public interface FSDataInputStreamShim extends APIShim<FSDataInputStream>,
    * called with a future that when complete will have a ByteBuffer with the
    * data from the file's range.
    * <p>
-   * The position returned by getPos() after readVectored() is undefined.
+   * The position returned by getPos() after readVectoredRanges() is undefined.
    * </p>
    * <p>
-   * If a file is changed while the readVectored() operation is in progress, the output is
+   * If a file is changed while the vectored read operation is in progress, the output is
    * undefined. Some ranges may have old data, some may have new and some may have both.
    * </p>
    * <p>
-   * While a readVectored() operation is in progress, normal read api calls may block.
+   * While a readVectoredRanges() operation is in progress, normal read api calls may block.
    * </p>
-   *
+   * Shim integration notes
+   * <ol>
+   *   <li>hands off to {@code PositionedReadable.readVectored()} if present.</li>
+   *   <li>if not: uses the same sequence of buffer reads as the default implementation
+   *        of that API does. </li>
+   *   <li>including using ByteBufferPositionedReadable where implemeted.</li>
+   * </ol>
    * @param ranges the byte ranges to read
    * @param allocate the function to allocate ByteBuffer
    *

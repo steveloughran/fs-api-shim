@@ -18,14 +18,16 @@
 package org.apache.hadoop.fs.shim;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.IntFunction;
 
 import org.apache.hadoop.fs.shim.impl.VectorFileRangeImpl;
 
 /**
  * A byte range of a file.
  * This is used for the asynchronous gather read API of
- * {@code PositionedReadable#readVectored}.
+ * {@link FSDataInputStreamShim#readVectoredRanges(List, IntFunction)}.
  */
 public interface VectorFileRange {
 

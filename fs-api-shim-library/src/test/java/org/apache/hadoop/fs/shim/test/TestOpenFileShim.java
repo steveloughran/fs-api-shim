@@ -31,7 +31,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.shim.FileSystemShim;
-import org.apache.hadoop.fs.shim.ShimBinding;
+import org.apache.hadoop.fs.shim.ShimFactory;
 import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 import org.apache.hadoop.fs.shim.test.binding.ShimTestUtils;
 import org.apache.hadoop.io.IOUtils;
@@ -68,7 +68,7 @@ public class TestOpenFileShim
   @Override
   public void setup() throws Exception {
     super.setup();
-    fsShim = ShimBinding.shimFileSystem(getFileSystem());
+    fsShim = ShimFactory.shimFileSystem(getFileSystem());
   }
 
   @Override

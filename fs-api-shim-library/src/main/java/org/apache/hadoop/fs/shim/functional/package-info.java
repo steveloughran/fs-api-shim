@@ -17,7 +17,8 @@
  */
 
 /**
- * Subset of {@code org.apache.hadoop.util.functional}.
+ * Subset of {@code org.apache.hadoop.util.functional} classes.
+ * Prefer that implementation over the shim variants.
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving

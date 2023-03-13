@@ -162,7 +162,7 @@ public final class ShimReflectionSupport {
       return source.getConstructor(parameterTypes);
     } catch (NoSuchMethodException | SecurityException e) {
 
-      LOG.debug("Could not load constructgor for {}", source, e);
+      LOG.debug("Could not load constructor for {}", source, e);
       return null;
     }
   }
@@ -220,7 +220,7 @@ public final class ShimReflectionSupport {
    * @return the result
    * @throws UnsupportedOperationException if the method is null
    * @throws RuntimeException for all RTEs raised by invoked methods except UncheckedIOEs
-   * @throws UncheckedIOException wrapped ioe
+   * @throws UncheckedIOException wrapped IOE
    */
   public static Object invokeUnchecked(
       String operation,

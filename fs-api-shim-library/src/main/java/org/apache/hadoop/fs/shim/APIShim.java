@@ -18,6 +18,10 @@
 
 package org.apache.hadoop.fs.shim;
 
+/**
+ * An API shim of type T.
+ * @param <T> the type which the shim wraps.
+ */
 public interface APIShim<T> {
   /**
    * Get the instance.

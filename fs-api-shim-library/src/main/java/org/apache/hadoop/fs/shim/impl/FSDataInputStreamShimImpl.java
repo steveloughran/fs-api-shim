@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.shim.FSDataInputStreamShim;
 import org.apache.hadoop.fs.shim.StandardStreamCapabilities;
 import org.apache.hadoop.fs.shim.VectorFileRange;
 
+import static org.apache.hadoop.fs.shim.StandardStreamCapabilities.READVECTORED;
 import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
 import static org.apache.hadoop.util.StringUtils.toLowerCase;
@@ -60,6 +61,9 @@ public class FSDataInputStreamShimImpl
    * TODO: make configurable?
    */
   public static final int TEMPORARY_BUFFER = 1024 * 128;
+  public static final String READ_FULLY = "readFully";
+  public static final String READ = "read";
+  public static final String READ_VECTORED = "readVectored";
 
   /**
    * {@code ByteBufferPositionedRead.readFully()}.
@@ -77,7 +81,7 @@ public class FSDataInputStreamShimImpl
   /**
    * FileRange class. This could be shared.
    */
-  private final FileRangeBridge fileRangeBridge;
+  private static final FileRangeBridge FILE_RANGE_BRIDGE = new FileRangeBridge();
 
   /**
    * readVectored() API.
@@ -94,14 +98,14 @@ public class FSDataInputStreamShimImpl
   public FSDataInputStreamShimImpl(
       final FSDataInputStream instance) {
     super(FSDataInputStream.class, instance);
-    byteBufferPositionedRead = loadInvocation(getClazz(), "read",
+    byteBufferPositionedRead = loadInvocation(getClazz(), READ,
         Integer.class,
         Long.class, ByteBuffer.class);
 
     byteBufferPositionedReadFully =
         byteBufferPositionedRead.available()
-            ? loadInvocation(getClazz(), "readFully", Void.class, Long.class, ByteBuffer.class)
-            : unavailable("readFully");
+            ? loadInvocation(getClazz(), READ_FULLY, Void.class, Long.class, ByteBuffer.class)
+            : unavailable(READ_FULLY);
     isByteBufferPositionedReadAvailable = new AtomicBoolean(
         byteBufferPositionedRead.available()
             && instance.hasCapability(StandardStreamCapabilities.PREADBYTEBUFFER));
@@ -109,12 +113,11 @@ public class FSDataInputStreamShimImpl
     // if an attempt to use it fails, it will downgrade
     isByteBufferReadableAvailable = new AtomicBoolean(
         instance.getWrappedStream() instanceof ByteBufferReadable);
-    fileRangeBridge = new FileRangeBridge();
-    if (fileRangeBridge.bridgeAvailable()) {
-      readVectored = loadInvocation(getClazz(), "readVectored",
+    if (FILE_RANGE_BRIDGE.bridgeAvailable()) {
+      readVectored = loadInvocation(getClazz(), READ_VECTORED,
           Void.class, List.class, Function.class);
     } else {
-      readVectored = unavailable("readVectored");
+      readVectored = unavailable(READ_VECTORED);
     }
 
   }
@@ -122,13 +125,13 @@ public class FSDataInputStreamShimImpl
   @Override
   public boolean hasCapability(final String capability) {
     switch (toLowerCase(capability)) {
-    case "in:preadbytebuffer":
+    case PREADBYTEBUFFER:
       // positioned read is always available
       return true;
-    case "in:readvectored":
+    case READVECTORED:
       // readVectored acceleration available if the API is loaded
       // and the instance says it supports it
-      return readVectored.available() && getInstance().hasCapability(capability);
+      return readVectored.available() && getInstance().hasCapability(READVECTORED);
     default:
       return getInstance().hasCapability(capability);
     }
@@ -200,7 +203,7 @@ public class FSDataInputStreamShimImpl
    *
    * @throws IOException failure
    */
-  public synchronized void fallbackReadFully(long position, ByteBuffer buf) throws IOException {
+  private synchronized void fallbackReadFully(long position, ByteBuffer buf) throws IOException {
     FSDataInputStream in = getInstance();
     int len = buf.remaining();
     LOG.debug("read @{} {} bytes", position, len);
@@ -280,7 +283,7 @@ public class FSDataInputStreamShimImpl
    *
    * @throws IOException failure
    */
-  public synchronized int fallbackRead(long position, ByteBuffer buf)
+  private synchronized int fallbackRead(long position, ByteBuffer buf)
       throws IOException {
     int len = buf.remaining();
     // position to return to.
@@ -356,7 +359,7 @@ public class FSDataInputStreamShimImpl
    * @throws IOException any IOE.
    * @throws UnsupportedOperationException if invoked on older releases.
    */
-  public void readVectored(List<?> ranges,
+  private void invokeReadVectored(List<?> ranges,
       IntFunction<ByteBuffer> allocate) throws IOException {
 
     // if the api is available on PositionedReadable, invoke it.
@@ -383,9 +386,9 @@ public class FSDataInputStreamShimImpl
     // if the readRange API is present, convert the arguments and delegate.
     if (readVectored.available()) {
       final List<Object> list = ranges.stream()
-          .map(fileRangeBridge::toFileRange)
+          .map(FILE_RANGE_BRIDGE::toFileRange)
           .collect(Collectors.toList());
-      readVectored(list, allocate);
+      invokeReadVectored(list, allocate);
     } else {
       // one of ranges.
       // fallback code

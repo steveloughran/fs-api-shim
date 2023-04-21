@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim;
+package org.apache.hadoop.fs.shim.api;
 
 import java.io.IOException;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 
 /**

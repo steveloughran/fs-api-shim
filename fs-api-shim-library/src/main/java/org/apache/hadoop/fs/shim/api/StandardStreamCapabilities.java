@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim;
+package org.apache.hadoop.fs.shim.api;
 
 /**
  *
@@ -83,13 +83,18 @@ public interface StandardStreamCapabilities {
    */
   String IOSTATISTICS = "iostatistics";
 
-  
+  /**
+   * Streams that support IOStatistics context and capture thread-level
+   * IOStatistics.
+   */
+  String IOSTATISTICS_CONTEXT = "fs.capability.iocontext.supported";
+
   /**
    * Flag to indicate whether a stream is a magic output stream;
    * returned in {@code StreamCapabilities}
    * Value: {@value}.
    */
-  static final String S3A_STREAM_CAPABILITY_MAGIC_OUTPUT
+  String S3A_STREAM_CAPABILITY_MAGIC_OUTPUT
       = "fs.s3a.capability.magic.output.stream";
 
   /**
@@ -97,7 +102,7 @@ public interface StandardStreamCapabilities {
    * returned in {@code PathCapabilities}
    * Value: {@value}.
    */
-  static final String S3A_CAPABILITY_MAGIC_COMMITTER
+  String S3A_CAPABILITY_MAGIC_COMMITTER
       = "fs.s3a.capability.magic.committer";
 
   /**
@@ -105,7 +110,7 @@ public interface StandardStreamCapabilities {
    * keeps directory markers.
    * Value: {@value}.
    */
-  public static final String S3A_CAPABILITY_DIRECTORY_MARKER_POLICY_KEEP
+  String S3A_CAPABILITY_DIRECTORY_MARKER_POLICY_KEEP
       = "fs.s3a.capability.directory.marker.policy.keep";
 
   /**
@@ -113,7 +118,7 @@ public interface StandardStreamCapabilities {
    * deletes directory markers.
    * Value: {@value}.
    */
-  public static final String S3A_CAPABILITY_DIRECTORY_MARKER_POLICY_DELETE
+  String S3A_CAPABILITY_DIRECTORY_MARKER_POLICY_DELETE
       = "fs.s3a.capability.directory.marker.policy.delete";
 
   /**
@@ -121,7 +126,7 @@ public interface StandardStreamCapabilities {
    * keeps directory markers in authoritative paths only.
    * Value: {@value}.
    */
-  public static final String
+  String
       S3A_CAPABILITY_DIRECTORY_MARKER_POLICY_AUTHORITATIVE =
       "fs.s3a.capability.directory.marker.policy.authoritative";
 
@@ -130,7 +135,7 @@ public interface StandardStreamCapabilities {
    * keeps directory markers.
    * Value: {@value}.
    */
-  public static final String S3A_CAPABILITY_DIRECTORY_MARKER_ACTION_KEEP
+  String S3A_CAPABILITY_DIRECTORY_MARKER_ACTION_KEEP
       = "fs.s3a.capability.directory.marker.action.keep";
 
   /**
@@ -138,9 +143,22 @@ public interface StandardStreamCapabilities {
    * deletes directory markers.
    * Value: {@value}.
    */
-  public static final String S3A_CAPABILITY_DIRECTORY_MARKER_ACTION_DELETE
+  String S3A_CAPABILITY_DIRECTORY_MARKER_ACTION_DELETE
       = "fs.s3a.capability.directory.marker.action.delete";
 
+  
+  /**
+   * Does this version of the store have safe readahead?
+   * Possible combinations of this and the probe
+   * {@code "fs.capability.etags.available"}.
+   * <ol>
+   *   <li>{@value}: store is safe</li>
+   *   <li>no etags: store is safe</li>
+   *   <li>etags and not {@value}: store is <i>UNSAFE</i></li>
+   * </ol>
+   */
+  String CAPABILITY_SAFE_READAHEAD =
+      "fs.azure.capability.readahead.safe";
   
 }
 

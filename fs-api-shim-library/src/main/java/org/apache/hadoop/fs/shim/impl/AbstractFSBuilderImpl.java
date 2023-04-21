@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.shim.FSBuilder;
+import org.apache.hadoop.fs.shim.api.FSBuilder;
 
 import static org.apache.hadoop.fs.shim.impl.Preconditions.checkArgument;
 import static org.apache.hadoop.fs.shim.impl.Preconditions.checkNotNull;

@@ -17,10 +17,11 @@
  */
 
 /**
- * Shim implementation classes.
- * Not for public use.
+ * Public API of the shim module.
  */
-@InterfaceAudience.Private
-package org.apache.hadoop.fs.shim.impl;
+@InterfaceAudience.Public
+@InterfaceStability.Unstable
+package org.apache.hadoop.fs.shim.api;
 
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceStability;

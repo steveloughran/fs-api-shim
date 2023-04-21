@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.shim.FSBuilder;
+import org.apache.hadoop.fs.shim.api.FSBuilder;
 
 /**
  * Builder for input streams and subclasses whose return value is

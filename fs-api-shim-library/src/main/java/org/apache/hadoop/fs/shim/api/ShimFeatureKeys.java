@@ -16,33 +16,42 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim.test.binding;
+package org.apache.hadoop.fs.shim.api;
 
-import org.apache.hadoop.fs.shim.api.StandardStreamCapabilities;
+import static org.apache.hadoop.fs.shim.api.StandardStreamCapabilities.PREADBYTEBUFFER;
+import static org.apache.hadoop.fs.shim.api.StandardStreamCapabilities.READVECTORED;
 
-public class FeatureKeys {
+/**
+ * Features which can be probed for through the
+ * {@link IsImplemented} interface.
+ */
+public interface ShimFeatureKeys {
 
   /**
    * Is the PathCapabilities API available?
    * Value: {@value}.
    */
-  public static final String PATH_CAPABILITIES = "path.capabilities";
+  String PATH_CAPABILITIES = "path.capabilities";
 
   /**
    * Is the msync call available?
    * Value: {@value}.
    */
-  public static final String MSYNC = "msync";
-  public static final String OPENFILE = "openfile";
+  String MSYNC = "msync";
 
-  public static final String IOSTATISTICS = StandardStreamCapabilities.IOSTATISTICS;
+  /**
+   * {@code openFile(path)}.
+   */
+  String OPENFILE = "openfile";
+
+  String IOSTATISTICS = StandardStreamCapabilities.IOSTATISTICS;
 
   /**
    * Is the ByteBufferPositionedRead API available?
    * Value: {@value}.
    */
   String BYTEBUFFER_POSITIONED_READ =
-      "bytebuffer.positionedread";
+      PREADBYTEBUFFER;
 
   /**
    * Is the ByteBufferPositionedRead API actually
@@ -57,5 +66,5 @@ public class FeatureKeys {
    * Is the vector IO API available?
    * Value: {@value}.
    */
-  String VECTOR_IO = "vector.io";
+  String VECTOR_IO = READVECTORED;
 }

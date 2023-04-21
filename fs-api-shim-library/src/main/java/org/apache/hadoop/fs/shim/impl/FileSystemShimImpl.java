@@ -21,6 +21,7 @@ package org.apache.hadoop.fs.shim.impl;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,13 +32,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.shim.FileSystemShim;
+import org.apache.hadoop.fs.shim.api.FileSystemShim;
 import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 
-import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED;
-import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT;
-import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED;
-import static org.apache.hadoop.fs.shim.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT;
+import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED;
+import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT;
+import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED;
+import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT;
+import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.MSYNC;
+import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.OPENFILE;
+import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.PATH_CAPABILITIES;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
 
 /**
@@ -95,9 +99,11 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
     // use the builder if present, and configured.
     OpenFileThroughBuilderAPI builderAPI = null;
     Configuration conf = instance.getConf();
-    if (conf.getBoolean(FS_OPTION_SHIM_OPENFILE_ENABLED, FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT)) {
+    if (conf.getBoolean(FS_OPTION_SHIM_OPENFILE_ENABLED,
+        FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT)) {
 
-      boolean withFileStatus = conf.getBoolean(FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED,
+      boolean withFileStatus = conf.getBoolean(
+          FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED,
           FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT);
       builderAPI = new OpenFileThroughBuilderAPI(getInstance(),
           withFileStatus);
@@ -134,7 +140,8 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
     }
   }
 
-  @Override public FutureDataInputStreamBuilder openFile(Path path)
+  @Override
+  public FutureDataInputStreamBuilder openFile(Path path)
       throws IOException, UnsupportedOperationException {
     return new OpenFileBuilder(executeOpenFile, path);
   }
@@ -163,9 +170,17 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
       }
       return classicOpenFile.executeOpenFile(builder);
     }
+
+    @Override
+    public boolean isImplemented(final String capability) {
+      return OPENFILE.equalsIgnoreCase(capability)
+          ? openFileFound()
+          : false;
+    }
   }
 
-  @Override public boolean openFileFound() {
+  @Override
+  public boolean openFileFound() {
     return useOpenFileAPI.get();
   }
 
@@ -178,11 +193,13 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
     return openFileThroughBuilder.getOpenFileFailures();
   }
 
-  @Override public boolean pathCapabilitiesFound() {
+  @Override
+  public boolean pathCapabilitiesFound() {
     return hasPathCapabilityMethod.available();
   }
 
-  @Override public boolean hasPathCapability(final Path path, final String capability)
+  @Override
+  public boolean hasPathCapability(final Path path, final String capability)
       throws IOException {
     if (!pathCapabilitiesFound()) {
       return false;
@@ -195,11 +212,13 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
     }
   }
 
-  @Override public boolean msyncFound() {
+  @Override
+  public boolean msyncFound() {
     return msyncMethod.available();
   }
 
-  @Override public void msync() throws IOException {
+  @Override
+  public void msync() throws IOException {
     if (msyncFound()) {
       try {
         msyncMethod.invoke(getInstance());
@@ -209,4 +228,18 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
     }
   }
 
+  @Override
+  public boolean isImplemented(final String capability) {
+    // keep new entries in alphanumeric order.
+    switch (capability.toLowerCase(Locale.ROOT)) {
+    case MSYNC:
+      return msyncFound();
+    case OPENFILE:
+      return openFileFound();
+    case PATH_CAPABILITIES:
+      return pathCapabilitiesFound();
+    default:
+      return false;
+    }
+  }
 }

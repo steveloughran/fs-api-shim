@@ -33,7 +33,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.shim.FSBuilder;
+import org.apache.hadoop.fs.shim.api.FSBuilder;
 
 /**
  * Future IO Helper methods.

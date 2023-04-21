@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.shim.functional.FutureIO;
 
+import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.OPENFILE;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.getMethod;
 
 /**
@@ -63,6 +64,7 @@ public final class OpenFileThroughBuilderAPI
 
   /**
    * Constructor.
+   *
    * @param instance FS instance to shim.
    * @param enableWithFileStatus should the .withFileStatus() method be called?
    */
@@ -70,14 +72,13 @@ public final class OpenFileThroughBuilderAPI
       final FileSystem instance,
       final boolean enableWithFileStatus) {
     super(FileSystem.class, instance);
-    openFileMethod = getMethod(instance.getClass(), "openFile", Path.class);
-
+    this.openFileMethod = getMethod(instance.getClass(), "openFile", Path.class);
     this.enableWithFileStatus = enableWithFileStatus;
   }
 
   /**
    * Record an exception during openFile.
-   * Increments the coutner and sets the
+   * Increments the counter and sets the
    * {@link #lastOpenFileException} to the value
    *
    * @param ex caught exception.
@@ -89,6 +90,13 @@ public final class OpenFileThroughBuilderAPI
       lastOpenFileException = ex;
     }
 
+  }
+
+  @Override
+  public boolean isImplemented(final String capability) {
+    return OPENFILE.equalsIgnoreCase(capability)
+        ? openFileFound()
+        : false;
   }
 
   public boolean openFileFound() {
@@ -167,7 +175,10 @@ public final class OpenFileThroughBuilderAPI
       throw e;
     } catch (InvocationTargetException e) {
       // an exception was reaised by the method, so examine it
-      throw FutureIO.unwrapInnerException(e);
+      // this is not something to consider an API failure
+      final IOException ioe = FutureIO.unwrapInnerException(e);
+      LOG.debug("Openfile failure for {}", path, ioe);
+      throw ioe;
 
     } catch (IllegalAccessException | NoSuchMethodException e) {
       // downgrade on all failures, even classic IOEs...let the fallback handle them.

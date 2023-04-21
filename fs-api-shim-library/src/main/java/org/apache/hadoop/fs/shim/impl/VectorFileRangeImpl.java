@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.fs.shim.VectorFileRange;
+import org.apache.hadoop.fs.shim.api.VectorFileRange;
 
 /**
  * A range of bytes from a file with an optional buffer to read those bytes

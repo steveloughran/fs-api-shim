@@ -28,8 +28,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.IntFunction;
 
 import org.apache.hadoop.fs.PositionedReadable;
-import org.apache.hadoop.fs.shim.FSDataInputStreamShim;
-import org.apache.hadoop.fs.shim.VectorFileRange;
+import org.apache.hadoop.fs.shim.api.FSDataInputStreamShim;
+import org.apache.hadoop.fs.shim.api.VectorFileRange;
 import org.apache.hadoop.fs.shim.functional.Function4RaisingIOE;
 
 /**

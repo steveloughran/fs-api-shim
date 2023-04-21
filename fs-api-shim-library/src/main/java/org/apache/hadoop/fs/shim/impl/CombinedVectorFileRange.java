@@ -21,7 +21,7 @@ package org.apache.hadoop.fs.shim.impl;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.fs.shim.VectorFileRange;
+import org.apache.hadoop.fs.shim.api.VectorFileRange;
 
 /**
  * A file range that represents a set of underlying file ranges.

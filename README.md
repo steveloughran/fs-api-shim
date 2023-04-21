@@ -55,7 +55,7 @@ Libraries which want to use these new APIs must build with a hadoop version of 3
 
 
 
-## `org.apache.hadoop.fs.shim.FSDataInputStreamShim`
+## `org.apache.hadoop.fs.shim.api.FSDataInputStreamShim`
 
 | Method                  | Version     | JIRA                                                               | Fallback                   |
 |-------------------------|-------------|--------------------------------------------------------------------|----------------------------|
@@ -64,13 +64,13 @@ Libraries which want to use these new APIs must build with a hadoop version of 3
 | `hasPathCapability()`   | 3.3.0       | [HADOOP-15691](https://issues.apache.org/jira/browse/HADOOP-15691) | `false`                    |
 
 
-## `org.apache.hadoop.fs.shim.FSDataInputStreamShim`
+## `org.apache.hadoop.fs.shim.api.FSDataInputStreamShim`
 
-| Method                     | Version | JIRA                                                               | Fallback                        |
-|----------------------------|---------|--------------------------------------------------------------------|---------------------------------|
-| `ByteBufferPositionedRead` | 3.3.0   | [HDFS-3246](https://issues.apache.org/jira/browse/HDFS-3246])      | Emulation                       |
+| Method                     | Version | JIRA                                                               | Fallback  |
+|----------------------------|---------|--------------------------------------------------------------------|-----------|
+| `ByteBufferPositionedRead` | 3.3.0   | [HDFS-3246](https://issues.apache.org/jira/browse/HDFS-3246])      | Emulation |
 | Vectored IO                | 3.3.5   | [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103) | Emulation |
-|                            |         |                                                                    |                                 |
+|                            |         |                                                                    |           |
 
 ### [HADOOP-15229](https://issues.apache.org/jira/browse/HADOOP-15229) Add FileSystem builder-based openFile() API to match createFile() (since 3.3.0)
 

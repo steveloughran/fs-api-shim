@@ -30,8 +30,8 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.shim.FileSystemShim;
-import org.apache.hadoop.fs.shim.ShimFactory;
+import org.apache.hadoop.fs.shim.api.FileSystemShim;
+import org.apache.hadoop.fs.shim.api.ShimFactory;
 import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 import org.apache.hadoop.fs.shim.test.binding.ShimTestUtils;
 import org.apache.hadoop.io.IOUtils;
@@ -39,9 +39,9 @@ import org.apache.hadoop.io.IOUtils;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.compareByteArrays;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.createFile;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.dataset;
-import static org.apache.hadoop.fs.shim.OpenFileConstants.FS_OPTION_OPENFILE_BUFFER_SIZE;
-import static org.apache.hadoop.fs.shim.OpenFileConstants.FS_OPTION_OPENFILE_LENGTH;
-import static org.apache.hadoop.fs.shim.OpenFileConstants.FS_OPTION_OPENFILE_READ_POLICY;
+import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_BUFFER_SIZE;
+import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_LENGTH;
+import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_READ_POLICY;
 import static org.apache.hadoop.fs.shim.functional.FutureIO.awaitFuture;
 import static org.apache.hadoop.fs.shim.test.binding.ShimTestUtils.interceptFuture;
 import static org.apache.hadoop.test.LambdaTestUtils.intercept;
@@ -85,7 +85,8 @@ public class TestOpenFileShim
     FileSystem fs = getFileSystem();
     fs.createFile(path).overwrite(true).build().close();
     try (FSDataInputStream is = fsShim.openFile(path)
-        .opt("fs.test.something", true)
+        .opt("fs.opt.readahead", "random")
+        .opt("fs.opt.length", 0)
         .opt("fs.test.something2", 3)
         .opt("fs.test.something3", "3")
         .build().get()) {

@@ -16,37 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim;
-
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.shim.impl.FSDataInputStreamShimImpl;
-import org.apache.hadoop.fs.shim.impl.FileSystemShimImpl;
+package org.apache.hadoop.fs.shim.api;
 
 /**
- * Binding class to create shim instances.
+ * An API shim of type {@code TYPE}.
+ *
+ * @param <TYPE> the type which the shim wraps.
  */
-public final class ShimFactory {
-
+public interface APIShim<TYPE> extends IsImplemented {
   /**
-   * Shim FS APIs.
-   * @param fs
-   * @return the shim
-   */
-  public static FileSystemShim shimFileSystem(FileSystem filesystem) {
-    return new FileSystemShimImpl(filesystem);
-  }
-
-  /**
-   * Shim an FSDataInputStream instance.
+   * Get the instance.
    *
-   * @param in the stream
-   *
-   * @return the shim
+   * @return instance being shimmed.
    */
-  public static FSDataInputStreamShim shimFSDataInputStream(
-      FSDataInputStream in) {
-    return new FSDataInputStreamShimImpl(in);
-  }
+  TYPE getInstance();
 
 }

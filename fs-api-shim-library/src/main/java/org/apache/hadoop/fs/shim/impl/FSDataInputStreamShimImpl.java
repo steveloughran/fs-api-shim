@@ -23,6 +23,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -33,11 +34,11 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.fs.ByteBufferReadable;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.shim.FSDataInputStreamShim;
-import org.apache.hadoop.fs.shim.StandardStreamCapabilities;
-import org.apache.hadoop.fs.shim.VectorFileRange;
+import org.apache.hadoop.fs.shim.api.FSDataInputStreamShim;
+import org.apache.hadoop.fs.shim.api.VectorFileRange;
 
-import static org.apache.hadoop.fs.shim.StandardStreamCapabilities.READVECTORED;
+import static org.apache.hadoop.fs.shim.api.StandardStreamCapabilities.PREADBYTEBUFFER;
+import static org.apache.hadoop.fs.shim.api.StandardStreamCapabilities.READVECTORED;
 import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
 import static org.apache.hadoop.util.StringUtils.toLowerCase;
@@ -108,7 +109,7 @@ public class FSDataInputStreamShimImpl
             : unavailable(READ_FULLY);
     isByteBufferPositionedReadAvailable = new AtomicBoolean(
         byteBufferPositionedRead.available()
-            && instance.hasCapability(StandardStreamCapabilities.PREADBYTEBUFFER));
+            && instance.hasCapability(PREADBYTEBUFFER));
     // declare ByteBufferReadable available if the inner stream supports it.
     // if an attempt to use it fails, it will downgrade
     isByteBufferReadableAvailable = new AtomicBoolean(
@@ -129,11 +130,21 @@ public class FSDataInputStreamShimImpl
       // positioned read is always available
       return true;
     case READVECTORED:
-      // readVectored acceleration available if the API is loaded
-      // and the instance says it supports it
-      return readVectored.available() && getInstance().hasCapability(READVECTORED);
+      return isVectorReadAvailable();
     default:
       return getInstance().hasCapability(capability);
+    }
+  }
+
+  @Override
+  public boolean isImplemented(final String capability) {
+    switch (capability.toLowerCase(Locale.ROOT)) {
+    case PREADBYTEBUFFER:
+      return isByteBufferPositionedReadAvailable();
+    case READVECTORED:
+      return isVectorReadAvailable();
+    default:
+      return false;
     }
   }
 
@@ -154,6 +165,15 @@ public class FSDataInputStreamShimImpl
   @Override
   public void readFully(final long position, final byte[] buffer) throws IOException {
     getInstance().readFully(position, buffer);
+  }
+
+  /**
+   * ReadVectored acceleration available if the API is loaded
+   * and the instance says it supports it
+   * @return true iff the stream implements it.
+   */
+  public final boolean isVectorReadAvailable() {
+    return readVectored.available() && getInstance().hasCapability(READVECTORED);
   }
 
   @Override

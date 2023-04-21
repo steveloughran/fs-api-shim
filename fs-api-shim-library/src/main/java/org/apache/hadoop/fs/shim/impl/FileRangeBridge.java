@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.hadoop.fs.shim.VectorFileRange;
+import org.apache.hadoop.fs.shim.api.VectorFileRange;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.ctor;

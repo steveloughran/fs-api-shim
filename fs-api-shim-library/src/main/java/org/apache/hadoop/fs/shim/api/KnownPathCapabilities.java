@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim;
-
-import org.apache.hadoop.classification.InterfaceStability;
+package org.apache.hadoop.fs.shim.api;
 
 /**
  * Common path capabilities.
@@ -128,7 +126,6 @@ public final class KnownPathCapabilities {
   /**
    * Probe for support for {@code BatchListingOperations}.
    */
-  @InterfaceStability.Unstable
   public static final String FS_EXPERIMENTAL_BATCH_LISTING =
       "fs.capability.batch.listing";
 

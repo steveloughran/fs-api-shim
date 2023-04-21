@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.shim;
+package org.apache.hadoop.fs.shim.api;
 
-import static org.apache.hadoop.fs.shim.OpenFileConstants.FILESYSTEM_OPTION;
+import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FILESYSTEM_OPTION;
 
 /**
  * Constants for the Shim classes themselves; not the APIs they shim.

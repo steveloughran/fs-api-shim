@@ -22,12 +22,13 @@ import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.shim.api.IsImplemented;
 
 /**
  * The file opening operation called by
  * {@link OpenFileBuilder}.
  */
-public interface ExecuteOpenFile {
+public interface ExecuteOpenFile extends IsImplemented {
 
   /**
    * Using the builder as the source of info, open the specified file.

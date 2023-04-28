@@ -50,15 +50,4 @@ public interface FutureDataInputStreamBuilder
       throws IllegalArgumentException, UnsupportedOperationException,
       IOException;
 
-  /**
-   * A FileStatus may be provided to the open request.
-   * It is up to the implementation whether to use this or not.
-   * @param status status: may be null
-   * @return the builder.
-   */
-  default FutureDataInputStreamBuilder withFileStatus(
-      FileStatus status) {
-    return this;
-  }
-
 }

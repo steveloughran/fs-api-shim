@@ -18,23 +18,12 @@
 
 package org.apache.hadoop.fs.shim.test.binding;
 
-/**
- * 3.3.0 has all of hadoop 3.2.0 but not Msync, which is why
- * it is declared as inheriting {@link Hadoop320Features}
- * and not {@link Hadoop322Features}.
- */
-public class Hadoop330Features extends Hadoop320Features {
+public class Hadoop335Features extends Hadoop332Features {
 
-  /**
-   * Query for a feature being supported.
-   * @param feature feature to query
-   * @return true if the feature is supported
-   */
-  public boolean hasCapability(String feature) {
+  @Override
+  public boolean hasCapability(final String feature) {
     switch (feature) {
-    case FeatureKeys.BYTEBUFFER_POSITIONED_READ:
-    case FeatureKeys.OPENFILE:
-    case FeatureKeys.PATH_CAPABILITIES:
+    case FeatureKeys.VECTOR_IO:
       return true;
     default:
       return super.hasCapability(feature);

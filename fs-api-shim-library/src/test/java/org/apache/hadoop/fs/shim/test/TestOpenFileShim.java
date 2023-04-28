@@ -42,6 +42,8 @@ import static org.apache.hadoop.fs.contract.ContractTestUtils.dataset;
 import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_BUFFER_SIZE;
 import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_LENGTH;
 import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_READ_POLICY;
+import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_SPLIT_END;
+import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_SPLIT_START;
 import static org.apache.hadoop.fs.shim.functional.FutureIO.awaitFuture;
 import static org.apache.hadoop.fs.shim.test.binding.ShimTestUtils.interceptFuture;
 import static org.apache.hadoop.test.LambdaTestUtils.intercept;
@@ -162,7 +164,6 @@ public class TestOpenFileShim
     describe("await Future handles chained failures");
     CompletableFuture<FSDataInputStream> f = fsShim
         .openFile(path("testChainedFailureAwaitFuture"))
-        .withFileStatus(null)
         .build();
     intercept(RuntimeException.class,
         "exceptionally",
@@ -182,33 +183,13 @@ public class TestOpenFileShim
         dataset(len, 0x40, 0x80));
     FileStatus st = fs.getFileStatus(path);
     CompletableFuture<Long> readAllBytes = fsShim.openFile(path)
-        .withFileStatus(st)
+        .opt(FS_OPTION_OPENFILE_LENGTH, len)
         .build()
         .thenApply(ShimTestUtils::readStream);
 
     assertEquals("Wrong number of bytes read value",
         len,
         (long) readAllBytes.get());
-    // now reattempt with a new FileStatus and a different path
-    // other than the final name element
-    // implementations MUST use path in openFile() call
-    FileStatus st2 = new FileStatus(
-        len, false,
-        st.getReplication(),
-        st.getBlockSize(),
-        st.getModificationTime(),
-        st.getAccessTime(),
-        st.getPermission(),
-        st.getOwner(),
-        st.getGroup(),
-        new Path("gopher:///localhost:/" + path.getName()));
-    assertEquals("Wrong number of bytes read value",
-        len,
-        (long) fsShim.openFile(path)
-            .withFileStatus(st2)
-            .build()
-            .thenApply(ShimTestUtils::readStream)
-            .get());
   }
 
   @Test
@@ -229,7 +210,7 @@ public class TestOpenFileShim
   }
 
   /**
-   * Open a file with a null status, and the length
+   * Open a file with the length
    * passed in as an opt() option (along with sequential IO).
    * The file is opened, the data read, and it must match
    * the source data.
@@ -238,9 +219,8 @@ public class TestOpenFileShim
    * recognized.
    */
   @Test
-  public void testOpenFileNullStatusButFileLength() throws Throwable {
-    describe("use openFile() with a null status and expect the status to be"
-        + " ignored. block size, fadvise and length are passed in as"
+  public void testOpenFileWithFileLength() throws Throwable {
+    describe("use openFile() with block size, fadvise and length passed in as"
         + " opt() options");
     Path path = path("testOpenFileNullStatus");
     FileSystem fs = getFileSystem();
@@ -250,11 +230,12 @@ public class TestOpenFileShim
     createFile(fs, path, true,
         dataset);
     CompletableFuture<FSDataInputStream> future = fsShim.openFile(path)
-        .withFileStatus(null)
         .opt(FS_OPTION_OPENFILE_READ_POLICY,
             "unknown, sequential, random")
         .opt(FS_OPTION_OPENFILE_BUFFER_SIZE, 32768)
         .opt(FS_OPTION_OPENFILE_LENGTH, len)
+        .opt(FS_OPTION_OPENFILE_SPLIT_START, 0)
+        .opt(FS_OPTION_OPENFILE_SPLIT_END, len)
         .build();
 
     try (FSDataInputStream in = future.get()) {

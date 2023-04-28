@@ -51,12 +51,6 @@ public abstract class FutureDataInputStreamBuilderImpl
   private int bufferSize = IO_FILE_BUFFER_SIZE_DEFAULT;
 
   /**
-   * File status passed in through a {@link #withFileStatus(FileStatus)}
-   * call; null otherwise.
-   */
-  private FileStatus status;
-
-  /**
    * Constructor.
    *
    * @param path path
@@ -98,17 +92,4 @@ public abstract class FutureDataInputStreamBuilderImpl
     return this;
   }
 
-  @Override
-  public FutureDataInputStreamBuilder withFileStatus(FileStatus st) {
-    this.status = st;
-    return this;
-  }
-
-  /**
-   * Get any status set in {@link #withFileStatus(FileStatus)}.
-   * @return a status value or null.
-   */
-  public FileStatus getStatus() {
-    return status;
-  }
 }

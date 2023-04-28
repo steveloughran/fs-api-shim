@@ -37,13 +37,4 @@ public class ShimConstants {
   /** Default value: {@value}. */
   public static final boolean FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT = true;
 
-  /**
-   * Should OpenFile.withFileStatus be invoked?  {@value}.
-   */
-  public static final String FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED =
-      FS_OPTION_SHIM + "openfile.filestatus.enabled";
-
-  /** Default value: {@value}. */
-  public static final boolean FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT = true;
-
 }

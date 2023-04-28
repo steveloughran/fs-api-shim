@@ -171,32 +171,6 @@ AbstractFSBuilderImpl<S, B extends FSBuilder<S, B>>
   }
 
   /**
-   * Set optional float parameter for the Builder.
-   *
-   * @see #opt(String, String)
-   */
-  @Override
-  public B opt(@Nonnull final String key, float value) {
-    mandatoryKeys.remove(key);
-    optionalKeys.add(key);
-    options.setFloat(key, value);
-    return getThisBuilder();
-  }
-
-  /**
-   * Set optional double parameter for the Builder.
-   *
-   * @see #opt(String, String)
-   */
-  @Override
-  public B opt(@Nonnull final String key, double value) {
-    mandatoryKeys.remove(key);
-    optionalKeys.add(key);
-    options.setDouble(key, value);
-    return getThisBuilder();
-  }
-
-  /**
    * Set an array of string values as optional parameter for the Builder.
    *
    * @see #opt(String, String)
@@ -253,32 +227,6 @@ AbstractFSBuilderImpl<S, B extends FSBuilder<S, B>>
     mandatoryKeys.add(key);
     optionalKeys.remove(key);
     options.setLong(key, value);
-    return getThisBuilder();
-  }
-
-  /**
-   * Set mandatory float option.
-   *
-   * @see #must(String, String)
-   */
-  @Override
-  public B must(@Nonnull final String key, float value) {
-    mandatoryKeys.add(key);
-    optionalKeys.remove(key);
-    options.setFloat(key, value);
-    return getThisBuilder();
-  }
-
-  /**
-   * Set mandatory double option.
-   *
-   * @see #must(String, String)
-   */
-  @Override
-  public B must(@Nonnull final String key, double value) {
-    mandatoryKeys.add(key);
-    optionalKeys.remove(key);
-    options.setDouble(key, value);
     return getThisBuilder();
   }
 

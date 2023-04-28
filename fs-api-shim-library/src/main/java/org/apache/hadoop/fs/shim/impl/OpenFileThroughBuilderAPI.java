@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.shim.functional.FutureIO;
@@ -41,8 +40,7 @@ import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.getMethod;
 /**
  * Open a file through the builder API.
  * The only builder methods looked up and invoked are
- * withFileStatus(), opt(String, String), and must(String, String).
- * withFileStatus() can be disabled.
+ * opt(String, String), and must(String, String).
  */
 public final class OpenFileThroughBuilderAPI
     extends AbstractAPIShim<FileSystem> implements ExecuteOpenFile {
@@ -58,22 +56,14 @@ public final class OpenFileThroughBuilderAPI
   private volatile Exception lastOpenFileException;
 
   /**
-   * Should the .withFileStatus() method be called?
-   */
-  private final boolean enableWithFileStatus;
-
-  /**
    * Constructor.
    *
    * @param instance FS instance to shim.
-   * @param enableWithFileStatus should the .withFileStatus() method be called?
    */
   public OpenFileThroughBuilderAPI(
-      final FileSystem instance,
-      final boolean enableWithFileStatus) {
+      final FileSystem instance) {
     super(FileSystem.class, instance);
     this.openFileMethod = getMethod(instance.getClass(), "openFile", Path.class);
-    this.enableWithFileStatus = enableWithFileStatus;
   }
 
   /**
@@ -127,7 +117,6 @@ public final class OpenFileThroughBuilderAPI
   public CompletableFuture<FSDataInputStream> executeOpenFile(final OpenFileBuilder source)
       throws IllegalArgumentException, UnsupportedOperationException, IOException {
 
-    FileStatus status = source.getStatus();
     FileSystem fs = getInstance();
     Path path = fs.makeQualified(source.getPath());
     LOG.debug("Opening file at {} through builder API", path);
@@ -145,20 +134,6 @@ public final class OpenFileThroughBuilderAPI
       Method must = builderClass.getMethod("must", String.class, String.class);
       for (String k : source.getMandatoryKeys()) {
         must.invoke(builder, k, options.get(k));
-      }
-
-      // s3a 3.3.0 raises an exception if
-      // the status.path != openFile path, so skip if true
-      // in case other stores have similar issues,  there is an option to disable it.
-      if (status != null && enableWithFileStatus) {
-        if (path.equals(status.getPath())) {
-          LOG.debug("Adding file status {}", status);
-          Method withFileStatus =
-              builderClass.getMethod("withFileStatus", FileStatus.class);
-          withFileStatus.invoke(builder, status);
-        } else {
-          LOG.debug("No adding file status as path doesn't match {}", status);
-        }
       }
       Method build = builderClass.getMethod("build");
       build.setAccessible(true);

@@ -59,16 +59,6 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
   B opt(String key, int value);
 
   /**
-   * Set optional float parameter for the Builder.
-   *
-   * @param key key.
-   * @param value value.
-   * @return generic type B.
-   * @see #opt(String, String)
-   */
-  B opt(String key, float value);
-
-  /**
    * Set optional long parameter for the Builder.
    *
    * @param key key.
@@ -77,16 +67,6 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @see #opt(String, String)
    */
   B opt(String key, long value);
-
-  /**
-   * Set optional double parameter for the Builder.
-   *
-   * @param key key.
-   * @param value value.
-   * @return generic type B.
-   * @see #opt(String, String)
-   */
-  B opt(String key, double value);
 
   /**
    * Set an array of string values as optional parameter for the Builder.
@@ -131,16 +111,6 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
   B must(String key, int value);
 
   /**
-   * Set mandatory float option.
-   *
-   * @param key key.
-   * @param value value.
-   * @return generic type B.
-   * @see #must(String, String)
-   */
-  B must(String key, float value);
-
-  /**
    * Set mandatory long option.
    *
    * @param key key.
@@ -149,16 +119,6 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @see #must(String, String)
    */
   B must(String key, long value);
-
-  /**
-   * Set mandatory double option.
-   *
-   * @param key key.
-   * @param value value.
-   * @return generic type B.
-   * @see #must(String, String)
-   */
-  B must(String key, double value);
 
   /**
    * Set a string array as mandatory option.

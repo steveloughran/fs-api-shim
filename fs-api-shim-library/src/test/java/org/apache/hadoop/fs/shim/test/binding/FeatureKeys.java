@@ -41,7 +41,7 @@ public class FeatureKeys {
    * Is the ByteBufferPositionedRead API available?
    * Value: {@value}.
    */
-  String BYTEBUFFER_POSITIONED_READ =
+  public static final String BYTEBUFFER_POSITIONED_READ =
       "bytebuffer.positionedread";
 
   /**
@@ -49,13 +49,12 @@ public class FeatureKeys {
    * implemented by the underlying stream?
    * Value: {@value}.
    */
-  String BYTEBUFFER_POSITIONED_READ_IMPLEMENTED =
+  public static final String BYTEBUFFER_POSITIONED_READ_IMPLEMENTED =
       "bytebuffer.positionedread.implemented";
-
 
   /**
    * Is the vector IO API available?
    * Value: {@value}.
    */
-  String VECTOR_IO = "vector.io";
+  public static final String VECTOR_IO = "vector.io";
 }

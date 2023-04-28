@@ -37,8 +37,6 @@ import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 
 import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED;
 import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT;
-import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED;
-import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT;
 import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.MSYNC;
 import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.OPENFILE;
 import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.PATH_CAPABILITIES;
@@ -101,12 +99,7 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
     Configuration conf = instance.getConf();
     if (conf.getBoolean(FS_OPTION_SHIM_OPENFILE_ENABLED,
         FS_OPTION_SHIM_OPENFILE_ENABLED_DEFAULT)) {
-
-      boolean withFileStatus = conf.getBoolean(
-          FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED,
-          FS_OPTION_SHIM_OPENFILE_FILESTATUS_ENABLED_DEFAULT);
-      builderAPI = new OpenFileThroughBuilderAPI(getInstance(),
-          withFileStatus);
+      builderAPI = new OpenFileThroughBuilderAPI(getInstance());
       if (builderAPI.openFileFound()) {
         //the method is present, so bind to it.
         openFileThroughBuilder = builderAPI;

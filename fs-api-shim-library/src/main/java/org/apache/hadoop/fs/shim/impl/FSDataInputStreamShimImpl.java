@@ -149,6 +149,13 @@ public class FSDataInputStreamShimImpl
   }
 
   @Override
+  public String toString() {
+    return "FSDataInputStreamShimImpl{} "
+        + availability(PREADBYTEBUFFER, READVECTORED)
+        + super.toString();
+  }
+
+  @Override
   public int read(final long position, final byte[] buffer, final int offset, final int length)
       throws IOException {
     return getInstance().read(position, buffer, offset, length);

@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.fs.shim.test.binding;
 
+import org.apache.hadoop.fs.shim.api.ShimFeatureKeys;
+
 public class Hadoop322Features extends Hadoop320Features {
 
   /**
@@ -27,8 +29,8 @@ public class Hadoop322Features extends Hadoop320Features {
    */
   public boolean hasCapability(String feature) {
     switch (feature) {
-    case FeatureKeys.PATH_CAPABILITIES:
-    case FeatureKeys.MSYNC:
+    case ShimFeatureKeys.PATH_CAPABILITIES:
+    case ShimFeatureKeys.MSYNC:
       return true;
     default:
       return super.hasCapability(feature);

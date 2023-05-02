@@ -21,6 +21,7 @@ package org.apache.hadoop.fs.shim.test;
 import java.lang.reflect.InvocationTargetException;
 
 import org.junit.BeforeClass;
+import org.junit.internal.AssumptionViolatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 import org.apache.hadoop.fs.contract.AbstractFSContractTestBase;
 import org.apache.hadoop.fs.shim.test.binding.FileContract;
+import org.apache.hadoop.fs.shim.test.binding.Hadoop320Features;
 import org.apache.hadoop.util.VersionInfo;
 
 import static java.util.Objects.requireNonNull;
@@ -73,10 +75,22 @@ public class AbstractShimContractTest extends AbstractFSContractTestBase
     super.setup();
 
     // also do the binding stuff here
-    Configuration bindingConf = new Configuration(false);
-    bindingConf.addResource("contract/binding.xml");
+    Configuration bindingConf = new Configuration(true);
     Class<? extends StreamCapabilities> binding = requireNonNull(
-        bindingConf.getClass("hadoop.test.binding", null, StreamCapabilities.class));
+        bindingConf.getClass("hadoop.test.binding", Hadoop320Features.class, StreamCapabilities.class));
     versionCapabilities = binding.getConstructor().newInstance();
+    LOG.info("Using version capability {}", versionCapabilities);
   }
+
+
+  /**
+   * report a test has been skipped for some reason.
+   * @param message message to use in the text
+   * @throws AssumptionViolatedException always
+   */
+  public static void skip(String message) {
+    LOG.info("Skipping: {}", message);
+    throw new AssumptionViolatedException(message);
+  }
+
 }

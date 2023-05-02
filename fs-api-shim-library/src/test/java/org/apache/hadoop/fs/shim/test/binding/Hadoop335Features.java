@@ -18,12 +18,14 @@
 
 package org.apache.hadoop.fs.shim.test.binding;
 
+import org.apache.hadoop.fs.shim.api.ShimFeatureKeys;
+
 public class Hadoop335Features extends Hadoop332Features {
 
   @Override
   public boolean hasCapability(final String feature) {
     switch (feature) {
-    case FeatureKeys.VECTOR_IO:
+    case ShimFeatureKeys.VECTOR_IO:
       return true;
     default:
       return super.hasCapability(feature);

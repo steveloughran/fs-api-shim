@@ -18,11 +18,18 @@
 package org.apache.hadoop.fs.shim.test;
 
 import java.io.FileNotFoundException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -30,6 +37,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.shim.api.FileSystemShim;
 import org.apache.hadoop.fs.shim.api.ShimFactory;
 import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
@@ -44,6 +52,8 @@ import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE
 import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_READ_POLICY;
 import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_SPLIT_END;
 import static org.apache.hadoop.fs.shim.api.OpenFileConstants.FS_OPTION_OPENFILE_SPLIT_START;
+import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFILE_ENABLED;
+import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.OPENFILE;
 import static org.apache.hadoop.fs.shim.functional.FutureIO.awaitFuture;
 import static org.apache.hadoop.fs.shim.test.binding.ShimTestUtils.interceptFuture;
 import static org.apache.hadoop.test.LambdaTestUtils.intercept;
@@ -51,19 +61,38 @@ import static org.apache.hadoop.test.LambdaTestUtils.intercept;
 /**
  * Test Open operations.
  */
+@RunWith(Parameterized.class)
 public class TestOpenFileShim
     extends AbstractShimContractTest {
-
+  private static final Logger LOG =
+      LoggerFactory.getLogger(TestOpenFileShim.class);
+  /**
+   * Should this run use the implemented value
+   */
+  private final boolean load;
   private FSDataInputStream instream;
   private FileSystemShim fsShim;
 
-  public TestOpenFileShim() {
+  /**
+   * Parameterization.
+   */
+  @Parameterized.Parameters(name = "load={0}")
+  public static Collection<Object[]> params() {
+    return Arrays.asList(new Object[][]{
+        {true},
+        {false},
+    });
+  }
+
+  public TestOpenFileShim(final boolean load) {
+    this.load = load;
   }
 
   @Override
   protected Configuration createConfiguration() {
     Configuration conf = super.createConfiguration();
     conf.setInt(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY, 4096);
+    conf.setBoolean(FS_OPTION_SHIM_OPENFILE_ENABLED, load);
     return conf;
   }
 
@@ -71,6 +100,30 @@ public class TestOpenFileShim
   public void setup() throws Exception {
     super.setup();
     fsShim = ShimFactory.shimFileSystem(getFileSystem());
+    requireImplementationIfVersionClaimsSupport(OPENFILE);
+  }
+
+  /**
+   * Require the shim to implement a feature on the enabled run.
+   *
+   * @param capability capability
+   */
+  private void requireImplementationIfVersionClaimsSupport(final String capability) {
+    LOG.info("Shim is {}", fsShim);
+    final boolean implemented = fsShim.isImplemented(capability);
+    final StreamCapabilities capabilities = getVersionCapabilities();
+    boolean expectImplementation = hasCapability(capability);
+    if (load) {
+      // loading requested, make sure the asserts match
+      if (expectImplementation) {
+        Assertions.assertThat(implemented)
+            .describedAs("implementation of %s by %s with" +
+                "expectation set by %s", capability, fsShim, capabilities)
+            .isTrue();
+      } else {
+        skip("Runtime does not have implementation");
+      }
+    }
   }
 
   @Override

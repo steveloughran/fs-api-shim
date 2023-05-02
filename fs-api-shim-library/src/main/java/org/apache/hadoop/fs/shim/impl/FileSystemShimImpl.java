@@ -235,4 +235,13 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
       return false;
     }
   }
+
+
+  @Override
+  public String toString() {
+    return "FileSystemShimImpl{} "
+        + availability(MSYNC, OPENFILE, PATH_CAPABILITIES)
+        + super.toString();
+  }
+
 }

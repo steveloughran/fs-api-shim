@@ -63,4 +63,27 @@ public abstract class AbstractAPIShim<T> implements APIShim<T> {
     return instance;
   }
 
+  /**
+   * get a list of which features are implemented in the underlying
+   * instance.
+   * @param features list of features
+   * @return enumeration for string value
+   */
+  protected String availability(String...features) {
+    StringBuilder result = new StringBuilder();
+    for (String feature : features) {
+      result.append(feature)
+          .append("=")
+          .append(isImplemented(feature))
+          .append("\n");
+    }
+    return result.toString();
+  }
+
+  @Override
+  public String toString() {
+    return "AbstractAPIShim{" +
+        "instance=" + instance +
+        '}';
+  }
 }

@@ -20,6 +20,9 @@ package org.apache.hadoop.fs.shim.test.binding;
 
 import org.apache.hadoop.fs.shim.api.ShimFeatureKeys;
 
+/**
+ * add path capabilities and msync.
+ */
 public class Hadoop322Features extends Hadoop320Features {
 
   /**

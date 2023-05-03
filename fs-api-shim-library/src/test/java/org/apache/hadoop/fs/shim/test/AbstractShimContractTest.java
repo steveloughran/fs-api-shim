@@ -18,8 +18,7 @@
 
 package org.apache.hadoop.fs.shim.test;
 
-import java.lang.reflect.InvocationTargetException;
-
+import org.assertj.core.api.Assertions;
 import org.junit.BeforeClass;
 import org.junit.internal.AssumptionViolatedException;
 import org.slf4j.Logger;
@@ -29,6 +28,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 import org.apache.hadoop.fs.contract.AbstractFSContractTestBase;
+import org.apache.hadoop.fs.shim.api.FileSystemShim;
+import org.apache.hadoop.fs.shim.api.IsImplemented;
+import org.apache.hadoop.fs.shim.api.ShimFactory;
 import org.apache.hadoop.fs.shim.test.binding.FileContract;
 import org.apache.hadoop.fs.shim.test.binding.Hadoop320Features;
 import org.apache.hadoop.util.VersionInfo;
@@ -44,7 +46,9 @@ public class AbstractShimContractTest extends AbstractFSContractTestBase
     implements StreamCapabilities {
   private static final Logger LOG = LoggerFactory.getLogger(AbstractShimContractTest.class);
 
-  private StreamCapabilities versionCapabilities;
+  private IsImplemented versionCapabilities;
+
+  private FileSystemShim fsShim;
 
   public AbstractShimContractTest() {
     // versionCapabilities = new Hadoop320Features();
@@ -55,7 +59,7 @@ public class AbstractShimContractTest extends AbstractFSContractTestBase
     LOG.info("Hadoop version {}", VersionInfo.getBuildVersion());
   }
 
-  public StreamCapabilities getVersionCapabilities() {
+  public IsImplemented getVersionCapabilities() {
     return versionCapabilities;
   }
 
@@ -67,7 +71,11 @@ public class AbstractShimContractTest extends AbstractFSContractTestBase
 
   @Override
   public boolean hasCapability(final String capability) {
-    return versionCapabilities.hasCapability(capability);
+    return versionCapabilities.isImplemented(capability);
+  }
+
+  public FileSystemShim getFsShim() {
+    return fsShim;
   }
 
   @Override
@@ -76,16 +84,19 @@ public class AbstractShimContractTest extends AbstractFSContractTestBase
 
     // also do the binding stuff here
     Configuration bindingConf = new Configuration(true);
-    Class<? extends StreamCapabilities> binding = requireNonNull(
-        bindingConf.getClass("hadoop.test.binding", Hadoop320Features.class, StreamCapabilities.class));
+    Class<? extends IsImplemented> binding = requireNonNull(
+        bindingConf.getClass("hadoop.test.binding", Hadoop320Features.class,
+            IsImplemented.class));
     versionCapabilities = binding.getConstructor().newInstance();
     LOG.info("Using version capability {}", versionCapabilities);
+    fsShim = ShimFactory.shimFileSystem(getFileSystem());
   }
-
 
   /**
    * report a test has been skipped for some reason.
+   *
    * @param message message to use in the text
+   *
    * @throws AssumptionViolatedException always
    */
   public static void skip(String message) {
@@ -93,4 +104,28 @@ public class AbstractShimContractTest extends AbstractFSContractTestBase
     throw new AssumptionViolatedException(message);
   }
 
+  /**
+   * Require the shim to implement a feature on the enabled run.
+   *
+   * @param capability capability
+   */
+  protected void requireImplementationIfVersionClaimsSupport(IsImplemented shim,
+      final String capability,
+      boolean load) {
+    LOG.info("Shim is {}", shim);
+    final boolean implemented = shim.isImplemented(capability);
+    final IsImplemented capabilities = getVersionCapabilities();
+    boolean expectImplementation = capabilities.isImplemented(capability);
+    if (load) {
+      // loading requested, make sure the asserts match
+      if (expectImplementation) {
+        Assertions.assertThat(implemented)
+            .describedAs("implementation of %s by %s with" +
+                "expectation set by %s", capability, shim, capabilities)
+            .isTrue();
+      } else {
+        skip("Runtime does not have implementation");
+      }
+    }
+  }
 }

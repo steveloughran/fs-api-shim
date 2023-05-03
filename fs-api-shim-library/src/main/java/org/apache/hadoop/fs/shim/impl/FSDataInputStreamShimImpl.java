@@ -37,16 +37,21 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.shim.api.FSDataInputStreamShim;
 import org.apache.hadoop.fs.shim.api.VectorFileRange;
 
+import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.BYTEBUFFER_POSITIONED_READ;
 import static org.apache.hadoop.fs.shim.api.StandardStreamCapabilities.PREADBYTEBUFFER;
 import static org.apache.hadoop.fs.shim.api.StandardStreamCapabilities.READVECTORED;
 import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
+import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.availability;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
 import static org.apache.hadoop.util.StringUtils.toLowerCase;
 
 /**
  * Extend FS implementations with
- * - implementation of ByteBufferPositionedReadable
- * - readVectoredRanges()
+ * <ol>
+ *   <li>implementation of ByteBufferPositionedReadable</li>
+ *   <li>readVectoredRanges()</li>
+ * </ol>
+ *
  * There's an expectation that the stream implements readFully() efficienty, and
  * is has a lazy seek() call, or the cost of a seek() is so low as to not matter.
  */
@@ -90,7 +95,6 @@ public class FSDataInputStreamShimImpl
    */
   private final Invocation<Void> readVectored;
 
-
   /**
    * Constructor.
    *
@@ -103,13 +107,16 @@ public class FSDataInputStreamShimImpl
         Integer.class,
         Long.class, ByteBuffer.class);
 
-    byteBufferPositionedReadFully =
-        byteBufferPositionedRead.available()
-            ? loadInvocation(getClazz(), READ_FULLY, Void.class, Long.class, ByteBuffer.class)
-            : unavailable(READ_FULLY);
-    isByteBufferPositionedReadAvailable = new AtomicBoolean(
-        byteBufferPositionedRead.available()
-            && instance.hasCapability(PREADBYTEBUFFER));
+    boolean bbrb = instance.hasCapability(PREADBYTEBUFFER)
+        && byteBufferPositionedRead.available();
+    if (bbrb) {
+      byteBufferPositionedReadFully = loadInvocation(getClazz(),
+          READ_FULLY, Void.class, Long.class, ByteBuffer.class);
+      isByteBufferPositionedReadAvailable = new AtomicBoolean(true);
+    } else {
+      byteBufferPositionedReadFully = unavailable(READ_FULLY);
+      isByteBufferPositionedReadAvailable = new AtomicBoolean(false);
+    }
     // declare ByteBufferReadable available if the inner stream supports it.
     // if an attempt to use it fails, it will downgrade
     isByteBufferReadableAvailable = new AtomicBoolean(
@@ -151,7 +158,7 @@ public class FSDataInputStreamShimImpl
   @Override
   public String toString() {
     return "FSDataInputStreamShimImpl{} "
-        + availability(PREADBYTEBUFFER, READVECTORED)
+        + availability(this, BYTEBUFFER_POSITIONED_READ, READVECTORED)
         + super.toString();
   }
 
@@ -177,6 +184,7 @@ public class FSDataInputStreamShimImpl
   /**
    * ReadVectored acceleration available if the API is loaded
    * and the instance says it supports it
+   *
    * @return true iff the stream implements it.
    */
   public final boolean isVectorReadAvailable() {
@@ -200,7 +208,7 @@ public class FSDataInputStreamShimImpl
         isByteBufferPositionedReadAvailable.set(false);
       }
     }
-    fallbackRead(position, buf);
+    fallbackByteBufferRead(position, buf);
     return byteBufferPositionedRead.invoke(getInstance(), position, buf);
   }
 
@@ -217,7 +225,7 @@ public class FSDataInputStreamShimImpl
         isByteBufferPositionedReadAvailable.set(false);
       }
     }
-    fallbackReadFully(position, buf);
+    fallbackByteBufferReadFully(position, buf);
   }
 
   /**
@@ -230,7 +238,8 @@ public class FSDataInputStreamShimImpl
    *
    * @throws IOException failure
    */
-  private synchronized void fallbackReadFully(long position, ByteBuffer buf) throws IOException {
+  private synchronized void fallbackByteBufferReadFully(long position, ByteBuffer buf)
+      throws IOException {
     FSDataInputStream in = getInstance();
     int len = buf.remaining();
     LOG.debug("read @{} {} bytes", position, len);
@@ -264,11 +273,13 @@ public class FSDataInputStreamShimImpl
     // final strategy.
     // buffer isn't an array, so need to create a smaller one then read via a series of readFully
     // calls.
+    LOG.debug("Reading the byte buffer by reading into an array and copying");
     int bufferSize = Math.min(len, TEMPORARY_BUFFER);
     byte[] byteArray = new byte[bufferSize];
     long nextReadPosition = position;
     while (buf.remaining() > 0) {
       int bytesToRead = Math.min(bufferSize, buf.remaining());
+      LOG.debug("Reading {} bytes from {}", bytesToRead, nextReadPosition);
       getInstance().readFully(nextReadPosition, byteArray, 0,
           bytesToRead);
       buf.put(byteArray, 0, bytesToRead);
@@ -306,11 +317,12 @@ public class FSDataInputStreamShimImpl
    *
    * @param position position within file
    * @param buf the ByteBuffer to receive the results of the read operation.
+   *
    * @return bytes read
    *
    * @throws IOException failure
    */
-  private synchronized int fallbackRead(long position, ByteBuffer buf)
+  private synchronized int fallbackByteBufferRead(long position, ByteBuffer buf)
       throws IOException {
     int len = buf.remaining();
     // position to return to.
@@ -398,6 +410,7 @@ public class FSDataInputStreamShimImpl
   /**
    * The shim method, which will invoke readVectored() if present,
    * and fallback to byte buffer/positioned read calls if not.
+   *
    * @param ranges the byte ranges to read
    * @param allocate the function to allocate ByteBuffer
    *

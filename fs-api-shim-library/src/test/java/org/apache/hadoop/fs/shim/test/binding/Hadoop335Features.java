@@ -18,14 +18,19 @@
 
 package org.apache.hadoop.fs.shim.test.binding;
 
-import org.apache.hadoop.fs.shim.api.ShimFeatureKeys;
+import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.IOSTATISTICS;
+import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.VECTOR_IO;
 
+/**
+ * Add VectorIO to Hadoop 3.3.2.
+ */
 public class Hadoop335Features extends Hadoop332Features {
 
   @Override
   public boolean hasCapability(final String feature) {
     switch (feature) {
-    case ShimFeatureKeys.VECTOR_IO:
+    case IOSTATISTICS:
+    case VECTOR_IO:
       return true;
     default:
       return super.hasCapability(feature);

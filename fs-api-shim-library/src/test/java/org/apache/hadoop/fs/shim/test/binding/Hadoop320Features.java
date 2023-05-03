@@ -19,6 +19,7 @@
 package org.apache.hadoop.fs.shim.test.binding;
 
 import org.apache.hadoop.fs.StreamCapabilities;
+import org.apache.hadoop.fs.shim.api.IsImplemented;
 
 /**
  * Rather than do things with XML resources the way
@@ -30,7 +31,7 @@ import org.apache.hadoop.fs.StreamCapabilities;
  * Note that there are some features in hadoop 3.3.2
  * not in 3.3.0.
  */
-public class Hadoop320Features implements StreamCapabilities {
+public class Hadoop320Features implements IsImplemented {
 
   /**
    * Query for a feature being supported.

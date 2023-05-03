@@ -37,9 +37,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.StreamCapabilities;
-import org.apache.hadoop.fs.shim.api.FileSystemShim;
-import org.apache.hadoop.fs.shim.api.ShimFactory;
 import org.apache.hadoop.fs.shim.functional.FutureDataInputStreamBuilder;
 import org.apache.hadoop.fs.shim.test.binding.ShimTestUtils;
 import org.apache.hadoop.io.IOUtils;
@@ -71,7 +68,6 @@ public class TestOpenFileShim
    */
   private final boolean load;
   private FSDataInputStream instream;
-  private FileSystemShim fsShim;
 
   /**
    * Parameterization.
@@ -99,31 +95,7 @@ public class TestOpenFileShim
   @Override
   public void setup() throws Exception {
     super.setup();
-    fsShim = ShimFactory.shimFileSystem(getFileSystem());
-    requireImplementationIfVersionClaimsSupport(OPENFILE);
-  }
-
-  /**
-   * Require the shim to implement a feature on the enabled run.
-   *
-   * @param capability capability
-   */
-  private void requireImplementationIfVersionClaimsSupport(final String capability) {
-    LOG.info("Shim is {}", fsShim);
-    final boolean implemented = fsShim.isImplemented(capability);
-    final StreamCapabilities capabilities = getVersionCapabilities();
-    boolean expectImplementation = hasCapability(capability);
-    if (load) {
-      // loading requested, make sure the asserts match
-      if (expectImplementation) {
-        Assertions.assertThat(implemented)
-            .describedAs("implementation of %s by %s with" +
-                "expectation set by %s", capability, fsShim, capabilities)
-            .isTrue();
-      } else {
-        skip("Runtime does not have implementation");
-      }
-    }
+    requireImplementationIfVersionClaimsSupport(getFsShim(), OPENFILE, load);
   }
 
   @Override
@@ -139,7 +111,7 @@ public class TestOpenFileShim
     Path path = path("zero.txt");
     FileSystem fs = getFileSystem();
     fs.createFile(path).overwrite(true).build().close();
-    try (FSDataInputStream is = fsShim.openFile(path)
+    try (FSDataInputStream is = getFsShim().openFile(path)
         .opt("fs.opt.readahead", "random")
         .opt("fs.opt.length", 0)
         .opt("fs.test.something2", 3)
@@ -153,7 +125,7 @@ public class TestOpenFileShim
   public void testOpenFileUnknownOption() throws Throwable {
     describe("calling openFile fails when a 'must()' option is unknown");
     FutureDataInputStreamBuilder builder =
-        fsShim.openFile(path("testOpenFileUnknownOption"))
+        getFsShim().openFile(path("testOpenFileUnknownOption"))
             .opt("fs.test.something", true)
             .must("fs.test.something", true);
     intercept(IllegalArgumentException.class,
@@ -164,7 +136,7 @@ public class TestOpenFileShim
   public void testOpenFileLazyFail() throws Throwable {
     describe("openFile fails on a missing file in the get() and not before");
     FutureDataInputStreamBuilder builder =
-        fsShim.openFile(path("testOpenFileLazyFail"))
+        getFsShim().openFile(path("testOpenFileLazyFail"))
             .opt("fs.test.something", true);
     interceptFuture(FileNotFoundException.class, "", builder.build());
   }
@@ -173,17 +145,18 @@ public class TestOpenFileShim
   public void testOpenFileFailExceptionally() throws Throwable {
     describe("openFile missing file chains into exceptionally()");
     FutureDataInputStreamBuilder builder =
-        fsShim.openFile(path("testOpenFileFailExceptionally"))
+        getFsShim().openFile(path("testOpenFileFailExceptionally"))
             .opt("fs.test.something", true);
-    assertNull("exceptional uprating",
-        builder.build().exceptionally(ex -> null).get());
+    Assertions.assertThat(builder.build().exceptionally(ex -> null).get())
+        .describedAs("exceptionally() processing")
+        .isNull();
   }
 
   @Test
   public void testAwaitFutureFailToFNFE() throws Throwable {
     describe("Verify that FutureIOSupport.awaitFuture extracts IOExceptions");
     FutureDataInputStreamBuilder builder =
-        fsShim.openFile(path("testAwaitFutureFailToFNFE"))
+        getFsShim().openFile(path("testAwaitFutureFailToFNFE"))
             .opt("fs.test.something", true);
     intercept(FileNotFoundException.class,
         () -> awaitFuture(builder.build()));
@@ -193,7 +166,7 @@ public class TestOpenFileShim
   public void testAwaitFutureTimeoutFailToFNFE() throws Throwable {
     describe("Verify that FutureIOSupport.awaitFuture with a timeout works");
     FutureDataInputStreamBuilder builder =
-        fsShim.openFile(path("testAwaitFutureFailToFNFE"))
+        getFsShim().openFile(path("testAwaitFutureFailToFNFE"))
             .opt("fs.test.something", true);
     intercept(FileNotFoundException.class,
         () -> awaitFuture(builder.build(),
@@ -203,7 +176,7 @@ public class TestOpenFileShim
   @Test
   public void testOpenFileExceptionallyTranslating() throws Throwable {
     describe("openFile missing file chains into exceptionally()");
-    CompletableFuture<FSDataInputStream> f = fsShim
+    CompletableFuture<FSDataInputStream> f = getFsShim()
         .openFile(path("testOpenFileExceptionallyTranslating")).build();
     interceptFuture(RuntimeException.class,
         "exceptionally",
@@ -215,7 +188,7 @@ public class TestOpenFileShim
   @Test
   public void testChainedFailureAwaitFuture() throws Throwable {
     describe("await Future handles chained failures");
-    CompletableFuture<FSDataInputStream> f = fsShim
+    CompletableFuture<FSDataInputStream> f = getFsShim()
         .openFile(path("testChainedFailureAwaitFuture"))
         .build();
     intercept(RuntimeException.class,
@@ -235,14 +208,14 @@ public class TestOpenFileShim
     createFile(fs, path, true,
         dataset(len, 0x40, 0x80));
     FileStatus st = fs.getFileStatus(path);
-    CompletableFuture<Long> readAllBytes = fsShim.openFile(path)
+    CompletableFuture<Long> readAllBytes = getFsShim().openFile(path)
         .opt(FS_OPTION_OPENFILE_LENGTH, len)
         .build()
         .thenApply(ShimTestUtils::readStream);
 
-    assertEquals("Wrong number of bytes read value",
-        len,
-        (long) readAllBytes.get());
+    Assertions.assertThat(readAllBytes.get())
+        .describedAs("bytes read")
+        .isEqualTo(len);
   }
 
   @Test
@@ -252,14 +225,15 @@ public class TestOpenFileShim
     FileSystem fs = getFileSystem();
     createFile(fs, path, true,
         dataset(4, 0x40, 0x80));
-    CompletableFuture<FSDataInputStream> future = fsShim.openFile(path).build();
+    CompletableFuture<FSDataInputStream> future = getFsShim().openFile(path).build();
     AtomicBoolean accepted = new AtomicBoolean(false);
     future.thenApply(stream -> {
       accepted.set(true);
       return stream;
     }).get().close();
-    assertTrue("async accept operation not invoked",
-        accepted.get());
+    Assertions.assertThat(accepted.get())
+        .describedAs("async accept() operation expected to set a flag")
+        .isTrue();
   }
 
   /**
@@ -267,6 +241,7 @@ public class TestOpenFileShim
    * passed in as an opt() option (along with sequential IO).
    * The file is opened, the data read, and it must match
    * the source data.
+   * <p>
    * opt() is used so that integration testing with external
    * filesystem connectors will downgrade if the option is not
    * recognized.
@@ -275,14 +250,14 @@ public class TestOpenFileShim
   public void testOpenFileWithFileLength() throws Throwable {
     describe("use openFile() with block size, fadvise and length passed in as"
         + " opt() options");
-    Path path = path("testOpenFileNullStatus");
+    Path path = path("testOpenFileWithFileLength");
     FileSystem fs = getFileSystem();
     int len = 4;
     byte[] result = new byte[len];
     byte[] dataset = dataset(len, 0x40, 0x80);
     createFile(fs, path, true,
         dataset);
-    CompletableFuture<FSDataInputStream> future = fsShim.openFile(path)
+    CompletableFuture<FSDataInputStream> future = getFsShim().openFile(path)
         .opt(FS_OPTION_OPENFILE_READ_POLICY,
             "unknown, sequential, random")
         .opt(FS_OPTION_OPENFILE_BUFFER_SIZE, 32768)
@@ -295,6 +270,11 @@ public class TestOpenFileShim
       in.readFully(result);
     }
     compareByteArrays(dataset, result, len);
+  }
+
+  @Test
+  public void testMsync() throws Throwable {
+    getFsShim().msync();
   }
 
 }

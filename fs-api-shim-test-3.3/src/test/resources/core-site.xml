@@ -21,6 +21,6 @@
 <configuration>
   <property>
     <name>hadoop.test.binding</name>
-    <value>org.apache.hadoop.fs.shim.test.binding.Hadoop332Features</value>
+    <value>org.apache.hadoop.fs.shim.test.binding.Hadoop335Features</value>
   </property>
 </configuration>

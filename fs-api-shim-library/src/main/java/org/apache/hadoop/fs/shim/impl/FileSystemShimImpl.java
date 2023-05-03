@@ -40,6 +40,7 @@ import static org.apache.hadoop.fs.shim.api.ShimConstants.FS_OPTION_SHIM_OPENFIL
 import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.MSYNC;
 import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.OPENFILE;
 import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.PATH_CAPABILITIES;
+import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.availability;
 import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.loadInvocation;
 
 /**
@@ -240,7 +241,7 @@ public class FileSystemShimImpl extends AbstractAPIShim<FileSystem>
   @Override
   public String toString() {
     return "FileSystemShimImpl{} "
-        + availability(MSYNC, OPENFILE, PATH_CAPABILITIES)
+        + availability(this, MSYNC, OPENFILE, PATH_CAPABILITIES)
         + super.toString();
   }
 

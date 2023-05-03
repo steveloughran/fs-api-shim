@@ -49,8 +49,9 @@
     <hadoop.version>3.2.0</hadoop.version>
 
     <!-- the hadoop version tested against -->
-    <hadoop.test.version>3.3.5</hadoop.test.version>
+    <hadoop.test.version>3.3.0</hadoop.test.version>
     <hadoop.3.2.test.version>3.2.4</hadoop.3.2.test.version>
+    <hadoop.3.3.test.version>3.3.5</hadoop.3.3.test.version>
 
     <junit.version>4.13.2</junit.version>
     <junit.jupiter.version>5.5.1</junit.jupiter.version>
@@ -69,6 +70,7 @@
     <module>fs-api-shim-library</module>
     <module>fs-api-shim-test</module>
     <module>fs-api-shim-test-3.2</module>
+    <module>fs-api-shim-test-3.3</module>
   </modules>
 
   <dependencyManagement>

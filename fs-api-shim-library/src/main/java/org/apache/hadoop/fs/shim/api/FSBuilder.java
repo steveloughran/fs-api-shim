@@ -66,17 +66,7 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #opt(String, String)
    */
-  B opt(String key, long value);
-
-  /**
-   * Set an array of string values as optional parameter for the Builder.
-   *
-   * @param key key.
-   * @param values values.
-   * @return generic type B.
-   * @see #opt(String, String)
-   */
-  B opt(String key, String... values);
+  B optLong(String key, long value);
 
   /**
    * Set mandatory option to the Builder.
@@ -118,17 +108,8 @@ public interface FSBuilder<S, B extends FSBuilder<S, B>> {
    * @return generic type B.
    * @see #must(String, String)
    */
-  B must(String key, long value);
+  B mustLong(String key, long value);
 
-  /**
-   * Set a string array as mandatory option.
-   *
-   * @param key key.
-   * @param values values.
-   * @return generic type B.
-   * @see #must(String, String)
-   */
-  B must(String key, String... values);
 
   /**
    * Instantiate the object which was being built.

@@ -29,6 +29,8 @@ import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.hadoop.fs.shim.api.IsImplemented;
+
 import static org.apache.hadoop.fs.shim.impl.Invocation.unavailable;
 
 /**
@@ -247,4 +249,21 @@ public final class ShimReflectionSupport {
     }
   }
 
+  /**
+   * get a list of which features are implemented in the underlying
+   * instance.
+   * @param source
+   * @param features list of features
+   * @return enumeration for string value
+   */
+  public static <T> String availability(final IsImplemented source, String... features) {
+    StringBuilder result = new StringBuilder();
+    for (String feature : features) {
+      result.append(feature)
+          .append("=")
+          .append(source.isImplemented(feature))
+          .append("\n");
+    }
+    return result.toString();
+  }
 }

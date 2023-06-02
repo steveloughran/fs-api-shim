@@ -15,24 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/**
+ * Binding classes for running the tests on different releases.
+ */
 package org.apache.hadoop.fs.shim.test.binding;
-
-import org.apache.hadoop.fs.shim.api.ShimFeatureKeys;
-
-public class Hadoop332Features extends Hadoop330Features {
-
-  /**
-   * Query for a feature being supported.
-   * @param feature feature to query
-   * @return true if the feature is supported
-   */
-  public boolean isImplemented(String feature) {
-    switch (feature) {
-    case ShimFeatureKeys.MSYNC:
-      return true;
-    default:
-      return super.isImplemented(feature);
-    }
-  }
-}

@@ -30,13 +30,13 @@ public class Hadoop322Features extends Hadoop320Features {
    * @param feature feature to query
    * @return true if the feature is supported
    */
-  public boolean hasCapability(String feature) {
+  public boolean isImplemented(String feature) {
     switch (feature) {
     case ShimFeatureKeys.PATH_CAPABILITIES:
     case ShimFeatureKeys.MSYNC:
       return true;
     default:
-      return super.hasCapability(feature);
+      return super.isImplemented(feature);
     }
   }
 }

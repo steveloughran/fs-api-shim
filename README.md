@@ -1,7 +1,7 @@
 # [HADOOP-18287](https://issues.apache.org/jira/browse/HADOOP-18103). Provide a shim library for modern FS APIs: `hadoop-api-shim`
 
-A shhim library for allowing hadoop-based applications to call the recent higher performance filesystem API
-methods when available, but still compile against and link to older hadoop releases.
+A shim library for allowing hadoop applications to call the recent higher-performance/cloud-aware
+filesystem API methods when available, but still compile against and link to older hadoop releases.
 
 This allows them to call operations which are potentially significantly
 higher performance, especially when working with object stores.
@@ -26,7 +26,7 @@ File formats which read stripes of data can use this API
 call to gain significant performance improvements.
 
 The library contains a number of shim classes, which can
-be instantiated with a supplied instance of a a class available
+be instantiated with a supplied instance of a class available
 in the Hadoop 3.2.0 APIs.
 
 These classes use reflection to bind to methods not available in the
@@ -45,7 +45,9 @@ as it would be if the method was called directly.
 
 1. Hadoop branch-3.2 is the oldest hadoop-3.x branch which has active releases for critical
 bugs. It is the de-facto baseline API for all Hadoop runtimes/platforms.
-2. It is the first version whose client libraries work with Java 11.
+2. It is the oldest Hadoop branch-3 branch getting security fixes: users of older releases MUST upgrade or keep their own version current.
+3. It is the first version whose client libraries work with Java 11.
+4. It is impossible to assert Hadoop 2 compatibility without actually building and testing on java7. Which is not easy to do any more.
 
 Libraries which want to use these new APIs must build with a hadoop version of 3.2.0
 *or later*.
@@ -97,7 +99,7 @@ The shim library only considers the API available if the methods are found and t
 probe is true. If, even then, an `UnsuportedOperationException` is thrown, the fallback routine
 is used for that call and all subsequent calls.
 
-### [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103). Vector IO. 3.3.5
+### [HADOOP-18103](https://issues.apache.org/jira/browse/HADOOP-18103). Vector IO. Since 3.3.5
 
 The Vector IO API of HADOOP-18103 offers a high performance scatter/gather API for accessing columnar data.
 By giving the filesystem clients more information about the plan of future reads, they can optimize
@@ -110,21 +112,18 @@ That means everything except the ftp and sftp connectors.
 ## Testing the library.
 
 
-The `hadoop-api-shim-library` module's test JAR contains contract tests
+The `hadoop-api-shim` module's test JAR contains contract tests
 (subclasses of `hadoop-common` test `AbstractFSContractTestBase`) for different shim classes.
 the library module's implementations will verify that when executed on older versions they work/downgrade/fail as expected.
 The XML contracts will declare what APIs are available for that store; separate files will be needed for each
 release and (somehow) the appropriate version identified.
 
-Implementations will be provided to run against: local fs, minihdfs, s3a and abfs.
+These test classes can be tested against different hadoop releases, by having a separate test
+module for each targeted version. 
 
-The tests will be lifted from hadoop's contract tests, where possible, so as to provide
-a reference implementation. 
+The package `org.apache.hadoop.fs.shim.test.binding` package contains feature classes for each
+hadoop version 
 
-A separate module will run the same test suites against a later version of hadoop, and expect different outcomes.
-
-The outcomes will vary with build, so will have to be dynamic.
-There will be profiles for hadoop 3.2.4, hadoop 3.3.4, cloudera CDP 7.1.8 nd hadoop-3.3.5 initially.
 
 For those `ByteBufferPositionedRead` a minihdfs cluster will be neede for the test suite,
 or an input stream with methods of the same name and arguments added.

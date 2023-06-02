@@ -32,14 +32,14 @@ public class Hadoop330Features extends Hadoop320Features {
    * @param feature feature to query
    * @return true if the feature is supported
    */
-  public boolean hasCapability(String feature) {
+  public boolean isImplemented(String feature) {
     switch (feature) {
     case ShimFeatureKeys.BYTEBUFFER_POSITIONED_READ:
     case ShimFeatureKeys.OPENFILE:
     case ShimFeatureKeys.PATH_CAPABILITIES:
       return true;
     default:
-      return super.hasCapability(feature);
+      return super.isImplemented(feature);
     }
   }
 }

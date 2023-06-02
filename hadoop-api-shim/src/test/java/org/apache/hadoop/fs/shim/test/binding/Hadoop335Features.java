@@ -27,13 +27,13 @@ import static org.apache.hadoop.fs.shim.api.ShimFeatureKeys.VECTOR_IO;
 public class Hadoop335Features extends Hadoop332Features {
 
   @Override
-  public boolean hasCapability(final String feature) {
+  public boolean isImplemented(final String feature) {
     switch (feature) {
     case IOSTATISTICS:
     case VECTOR_IO:
       return true;
     default:
-      return super.hasCapability(feature);
+      return super.isImplemented(feature);
     }
   }
 }

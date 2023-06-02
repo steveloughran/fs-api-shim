@@ -44,6 +44,7 @@ import static org.apache.hadoop.fs.shim.impl.ShimReflectionSupport.getMethod;
  */
 public final class OpenFileThroughBuilderAPI
     extends AbstractAPIShim<FileSystem> implements ExecuteOpenFile {
+
   private static final Logger LOG = LoggerFactory.getLogger(OpenFileThroughBuilderAPI.class);
 
   private final Method openFileMethod;

@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.fs.shim.test.binding;
 
-import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.shim.api.IsImplemented;
 
 /**
@@ -34,11 +33,13 @@ import org.apache.hadoop.fs.shim.api.IsImplemented;
 public class Hadoop320Features implements IsImplemented {
 
   /**
-   * Query for a feature being supported.
-   * @param feature feature to query
-   * @return true if the feature is supported
+   * Hadoop 3.2.0 returns "false" for all capabilities.
+   * @param capability capability/feature to probe for
+   *
+   * @return false, always.
    */
-  public boolean hasCapability(String feature) {
+  @Override
+  public boolean isImplemented(final String capability) {
     return false;
   }
 }

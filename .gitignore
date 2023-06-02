@@ -4,11 +4,6 @@
 # Log file
 *.log
 
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
 
 # Package Files #
 *.jar
@@ -21,7 +16,9 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
-/fs-api-shim-library/target/
-/fs-api-shim-test/target/
-/fs-api-shim-test-3.2/target/
+
 /.idea/
+/hadoop-api-shim/target/
+/hadoop-api-shim-test/target/
+/hadoop-api-shim-test-3.2/target/
+/hadoop-api-shim-test-3.3/target/

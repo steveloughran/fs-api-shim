@@ -1,4 +1,4 @@
-# [HADOOP-18287](https://issues.apache.org/jira/browse/HADOOP-18103). Provide a shim library for modern FS APIs: `fs-api-shim`
+# [HADOOP-18287](https://issues.apache.org/jira/browse/HADOOP-18103). Provide a shim library for modern FS APIs: `hadoop-api-shim`
 
 A shhim library for allowing hadoop-based applications to call the recent higher performance filesystem API
 methods when available, but still compile against and link to older hadoop releases.
@@ -110,7 +110,7 @@ That means everything except the ftp and sftp connectors.
 ## Testing the library.
 
 
-The `fs-api-shim-library` module's test JAR contains contract tests
+The `hadoop-api-shim-library` module's test JAR contains contract tests
 (subclasses of `hadoop-common` test `AbstractFSContractTestBase`) for different shim classes.
 the library module's implementations will verify that when executed on older versions they work/downgrade/fail as expected.
 The XML contracts will declare what APIs are available for that store; separate files will be needed for each

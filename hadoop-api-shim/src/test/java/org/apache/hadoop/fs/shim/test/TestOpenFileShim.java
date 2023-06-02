@@ -113,8 +113,8 @@ public class TestOpenFileShim
     fs.createFile(path).overwrite(true).build().close();
     try (FSDataInputStream is = getFsShim().openFile(path)
         .opt("fs.opt.readahead", "random")
-        .opt("fs.opt.length", 0)
-        .opt("fs.test.something2", 3)
+        .optLong("fs.opt.length", 0)
+        .optLong("unknown.long", 3L)
         .opt("fs.test.something3", "3")
         .build().get()) {
       assertMinusOne("initial byte read", is.read());
@@ -127,7 +127,8 @@ public class TestOpenFileShim
     FutureDataInputStreamBuilder builder =
         getFsShim().openFile(path("testOpenFileUnknownOption"))
             .opt("fs.test.something", true)
-            .must("fs.test.something", true);
+            .mustLong("mandatory.long", 3L)
+            .must("manatory.bool", true);
     intercept(IllegalArgumentException.class,
         () -> builder.build());
   }
@@ -209,7 +210,7 @@ public class TestOpenFileShim
         dataset(len, 0x40, 0x80));
     FileStatus st = fs.getFileStatus(path);
     CompletableFuture<Long> readAllBytes = getFsShim().openFile(path)
-        .opt(FS_OPTION_OPENFILE_LENGTH, len)
+        .optLong(FS_OPTION_OPENFILE_LENGTH, len)
         .build()
         .thenApply(ShimTestUtils::readStream);
 
@@ -260,10 +261,10 @@ public class TestOpenFileShim
     CompletableFuture<FSDataInputStream> future = getFsShim().openFile(path)
         .opt(FS_OPTION_OPENFILE_READ_POLICY,
             "unknown, sequential, random")
-        .opt(FS_OPTION_OPENFILE_BUFFER_SIZE, 32768)
-        .opt(FS_OPTION_OPENFILE_LENGTH, len)
-        .opt(FS_OPTION_OPENFILE_SPLIT_START, 0)
-        .opt(FS_OPTION_OPENFILE_SPLIT_END, len)
+        .optLong(FS_OPTION_OPENFILE_BUFFER_SIZE, 32768)
+        .optLong(FS_OPTION_OPENFILE_LENGTH, len)
+        .optLong(FS_OPTION_OPENFILE_SPLIT_START, 0)
+        .optLong(FS_OPTION_OPENFILE_SPLIT_END, len)
         .build();
 
     try (FSDataInputStream in = future.get()) {

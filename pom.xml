@@ -19,12 +19,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.apache.hadoop.extensions</groupId>
-  <artifactId>fs-api-shim</artifactId>
+  <artifactId>hadoop-api-shim-project</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>fs-api-shim</name>
+  <name>hadoop-api-shim-project</name>
   <!-- FIXME change it to the project's website -->
-  <!--  <url></url>-->
+  <url>https://hadoop.apache.org/</url>
 
   <licenses>
     <license>
@@ -39,14 +39,15 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven-surefire-plugin.argLine>-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError</maven-surefire-plugin.argLine>
-    <maven-surefire-plugin.version>3.0.0-M4</maven-surefire-plugin.version>
+    <maven-surefire-plugin.version>3.1.0</maven-surefire-plugin.version>
     <maven-surefire-report-plugin.version>${maven-surefire-plugin.version}</maven-surefire-report-plugin.version>
+    <maven-failsafe-plugin.version>3.1.0</maven-failsafe-plugin.version>
 
     <javac.version>1.8</javac.version>
     <enforced.java.version>${javac.version}</enforced.java.version>
 
     <!-- this is the version built against-->
-    <hadoop.version>3.2.0</hadoop.version>
+    <hadoop.build.version>3.2.0</hadoop.build.version>
 
     <!-- the hadoop version tested against -->
     <hadoop.test.version>3.3.0</hadoop.test.version>
@@ -67,10 +68,10 @@
   </properties>
 
   <modules>
-    <module>fs-api-shim-library</module>
-    <module>fs-api-shim-test</module>
-    <module>fs-api-shim-test-3.2</module>
-    <module>fs-api-shim-test-3.3</module>
+    <module>hadoop-api-shim</module>
+    <module>hadoop-api-shim-test</module>
+    <module>hadoop-api-shim-test-3.2</module>
+    <module>hadoop-api-shim-test-3.3</module>
   </modules>
 
   <dependencyManagement>
@@ -80,12 +81,12 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-client</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${hadoop.build.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-common</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${hadoop.build.version}</version>
         <exclusions>
           <exclusion>
             <groupId>org.apache.zookeeper</groupId>
@@ -110,7 +111,7 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-common</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${hadoop.build.version}</version>
         <type>test-jar</type>
         <exclusions>
           <exclusion>
@@ -138,7 +139,7 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-cloud-storage</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${hadoop.build.version}</version>
         <exclusions>
           <exclusion>
             <groupId>org.apache.hadoop</groupId>
@@ -297,17 +298,17 @@
         <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>3.2.0</version>
         </plugin>
         <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
         <plugin>
           <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.2</version>
+          <version>3.3.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.0</version>
+          <version>3.11.0</version>
           <configuration>
             <source>${javac.version}</source>
             <target>${javac.version}</target>
@@ -333,7 +334,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.2.2</version>
+          <version>3.3.0</version>
           <executions>
             <execution>
               <goals>
@@ -345,7 +346,7 @@
 
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
-          <version>2.5.2</version>
+          <version>3.1.1</version>
         </plugin>
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>

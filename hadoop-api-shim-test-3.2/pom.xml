@@ -19,19 +19,18 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.hadoop.extensions</groupId>
-    <artifactId>fs-api-shim</artifactId>
+    <artifactId>hadoop-api-shim-project</artifactId>
     <relativePath>../pom.xml</relativePath>
     <version>1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>fs-api-shim-test</artifactId>
+  <artifactId>hadoop-api-shim-test-3.2</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>fs-api-shim-test</name>
+  <name>hadoop-api-shim-test-3.2</name>
   <description>
-    Module to test the fs-api-shim library against a later version
-    of hadoop.
+    Test against hadoop-3.2.x
   </description>
 
 
@@ -43,14 +42,14 @@
 
     <dependency>
       <groupId>org.apache.hadoop.extensions</groupId>
-      <artifactId>fs-api-shim-library</artifactId>
+      <artifactId>hadoop-api-shim</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.hadoop.extensions</groupId>
-      <artifactId>fs-api-shim-library</artifactId>
+      <artifactId>hadoop-api-shim</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
@@ -60,20 +59,19 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-common</artifactId>
-      <version>${hadoop.test.version}</version>
-    </dependency>
+      <version>${hadoop.3.2.test.version}</version>
 
+    </dependency>
     <dependency>
-    <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-common</artifactId>
-      <version>${hadoop.test.version}</version>
-      <type>test-jar</type>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
 
@@ -83,18 +81,7 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-reload4j</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.reload4j</groupId>
-      <artifactId>reload4j</artifactId>
-    </dependency>
+
   </dependencies>
 
   <build>
@@ -107,7 +94,7 @@
 
           <trimStackTrace>false</trimStackTrace>
             <dependenciesToScan>
-              <dependency>org.apache.hadoop.extensions:fs-api-shim-library:test-jar</dependency>
+              <dependency>org.apache.hadoop.extensions:hadoop-api-shim-library:test-jar</dependency>
             </dependenciesToScan>
         </configuration>
       </plugin>
